@@ -25,7 +25,7 @@ st.set_page_config(
 def load_model():
 
     model_package = joblib.load(
-        "furaha_screening_model (1) .joblib"
+        "furaha_screening_model (1).joblib"
     )
 
     return model_package
