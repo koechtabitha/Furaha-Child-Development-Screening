@@ -1,9 +1,8 @@
+import os
 import streamlit as st
 import pandas as pd
 import joblib
 from datetime import date
-
-
 # =========================================================
 # PAGE SETTINGS
 # =========================================================
@@ -11,495 +10,166 @@ from datetime import date
 st.set_page_config(
     page_title="Furaha Child Screening",
     page_icon="🧒",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide"
 )
 
 
 # =========================================================
-# PROFESSIONAL INTERFACE STYLING
+# FURAHA DESIGN (COLOURS AND INTERFACE ONLY)
+# This block only changes how the app looks.
+# It does not change any screening logic below.
+# Furaha colours: black, red, a little green, white
 # =========================================================
 
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap');
 
-/* ---------------------------------------------------------
-   GENERAL PAGE
---------------------------------------------------------- */
-
-.stApp {
-    background: #F7F9FC;
-}
+/* ---------- Page and main column ---------- */
+.stApp { background: #EDEDED; color: #1A1A1A; }
 
 .block-container {
-    max-width: 1150px;
-    padding-top: 2rem;
-    padding-bottom: 4rem;
+    max-width: 1000px;
+    background: #FFFFFF;
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 2.2rem 2.6rem 3rem 2.6rem !important;
+    border-radius: 8px;
+    box-shadow: 0 2px 14px rgba(0,0,0,.08);
+    border-top: 6px solid #C8102E;
 }
 
-#MainMenu {
-    visibility: hidden;
+/* ---------- Fonts ---------- */
+.stApp p, .stApp li, .stApp label, .stApp input,
+.stApp button, .stApp div[data-baseweb="select"] {
+    font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+}
+.stApp h1, .stApp h2, .stApp h3 {
+    font-family: 'Outfit', 'Segoe UI', Arial, sans-serif;
 }
 
-footer {
-    visibility: hidden;
+/* ---------- Hide Streamlit menu and footer ---------- */
+#MainMenu, footer { visibility: hidden; }
+header[data-testid="stHeader"] { background: #000; border-bottom: 3px solid #C8102E; }
+
+/* ---------- Title becomes the black banner ---------- */
+.stApp h1 {
+    background: #000;
+    color: #FFF !important;
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.15;
+    padding: 34px 36px 30px 36px !important;
+    border-radius: 6px;
+    border-bottom: 8px solid;
+    border-image: linear-gradient(to right, #C8102E 0 72%, #2E9E5B 72% 86%, #000 86%) 1;
+    margin-bottom: 14px;
 }
-
-header[data-testid="stHeader"] {
-    background: transparent;
-}
-
-
-/* ---------------------------------------------------------
-   HEADINGS
---------------------------------------------------------- */
-
-h1 {
-    color: #111111 !important;
-    font-weight: 750 !important;
-}
-
-h2 {
-    color: #111111 !important;
-    font-weight: 700 !important;
-}
-
-h3 {
-    color: #222222 !important;
-    font-weight: 650 !important;
-}
-
-
-/* ---------------------------------------------------------
-   FURAHA HEADER
---------------------------------------------------------- */
-
-.furaha-header {
-    background: linear-gradient(
-        135deg,
-        #111111 0%,
-        #242424 100%
-    );
-
-    padding: 32px 36px;
-    border-radius: 18px;
-    margin-bottom: 24px;
-
-    border-left: 8px solid #C8102E;
-
-    box-shadow:
-        0 6px 20px rgba(0,0,0,0.10);
-}
-
-.furaha-title {
-    color: white !important;
-    font-size: 32px;
-    font-weight: 750;
-    margin: 0;
-}
-
-.furaha-subtitle {
-    color: #E5E5E5;
-    font-size: 17px;
-    margin-top: 7px;
-}
-
-.furaha-tag {
-    display: inline-block;
-
-    background: #C8102E;
-    color: white;
-
-    padding: 6px 15px;
-    border-radius: 20px;
-
-    font-size: 13px;
+.stApp h1::before {
+    content: "Furaha Therapy and Care Centre";
+    display: block;
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 15px;
     font-weight: 600;
-
-    margin-top: 15px;
+    opacity: .85;
+    margin-bottom: 10px;
 }
 
-
-/* ---------------------------------------------------------
-   INTRODUCTION CARD
---------------------------------------------------------- */
-
-.info-card {
-    background: white;
-
-    padding: 22px 25px;
-
-    border-radius: 14px;
-
-    border: 1px solid #E6E9EF;
-
-    box-shadow:
-        0 3px 12px rgba(0,0,0,0.06);
-
-    margin-bottom: 20px;
-}
-
-.info-card-title {
-    font-size: 19px;
-    font-weight: 700;
-    color: #111111;
-    margin-bottom: 8px;
-}
-
-.info-card-text {
-    color: #555555;
-    line-height: 1.65;
-}
-
-
-/* ---------------------------------------------------------
-   SECTION HEADERS
---------------------------------------------------------- */
-
-.section-title {
-    background: white;
-
-    padding: 17px 22px;
-
-    border-radius: 12px;
-
-    border-left: 6px solid #C8102E;
-
-    margin-top: 30px;
-    margin-bottom: 18px;
-
-    box-shadow:
-        0 2px 8px rgba(0,0,0,0.05);
-}
-
-.section-number {
-    color: #C8102E;
-
-    font-weight: 800;
-
-    font-size: 13px;
-
-    text-transform: uppercase;
-
-    letter-spacing: 0.5px;
-}
-
-.section-name {
-    color: #111111;
-
-    font-size: 24px;
-
-    font-weight: 700;
-
-    margin-top: 2px;
-}
-
-
-/* ---------------------------------------------------------
-   SUBSECTION
---------------------------------------------------------- */
-
-.subsection-title {
-    color: #222222;
-
-    font-size: 19px;
-
-    font-weight: 700;
-
-    margin-top: 22px;
-
-    margin-bottom: 12px;
-}
-
-
-/* ---------------------------------------------------------
-   INPUT AREA
---------------------------------------------------------- */
-
-div[data-baseweb="select"] > div {
-    border-radius: 9px;
-}
-
-input {
-    border-radius: 9px !important;
-}
-
-
-/* ---------------------------------------------------------
-   BUTTONS
---------------------------------------------------------- */
-
-.stButton > button {
-    background: #C8102E;
-
-    color: white;
-
-    border: none;
-
-    border-radius: 10px;
-
-    padding: 0.75rem 1.5rem;
-
-    font-weight: 700;
-
-    font-size: 16px;
-
-    min-height: 52px;
-
-    transition: all 0.2s ease;
-}
-
-.stButton > button:hover {
-    background: #9F0D24;
-
-    color: white;
-
-    transform: translateY(-1px);
-}
-
-
-/* ---------------------------------------------------------
-   ALERTS
---------------------------------------------------------- */
-
-div[data-testid="stAlert"] {
-    border-radius: 12px;
-}
-
-
-/* ---------------------------------------------------------
-   AGE CARD
---------------------------------------------------------- */
-
-.age-card {
-    background: #F3F6FA;
-
-    border: 1px solid #DDE3EA;
-
-    padding: 14px 18px;
-
-    border-radius: 10px;
-
-    margin-top: 8px;
-
-    margin-bottom: 15px;
-
-    color: #333333;
-
-    font-weight: 600;
-}
-
-
-/* ---------------------------------------------------------
-   RESULT CARD
---------------------------------------------------------- */
-
-.result-card {
-    background: white;
-
-    padding: 25px;
-
-    border-radius: 16px;
-
-    border: 1px solid #E4E7EC;
-
-    box-shadow:
-        0 5px 18px rgba(0,0,0,0.07);
-
-    margin-top: 20px;
-}
-
-.result-title {
-    color: #111111;
-
+/* ---------- Section headings ---------- */
+.stApp h2 {
+    color: #000;
     font-size: 25px;
-
-    font-weight: 750;
-
-    margin-bottom: 12px;
-}
-
-
-/* ---------------------------------------------------------
-   RESULT CONDITION CARD
---------------------------------------------------------- */
-
-.condition-card {
-    background: #FFF6F7;
-
-    border-left: 5px solid #C8102E;
-
-    padding: 15px 18px;
-
-    border-radius: 10px;
-
-    margin-bottom: 10px;
-
-    color: #222222;
-
-    font-weight: 600;
-}
-
-
-/* ---------------------------------------------------------
-   INTERVENTION CARD
---------------------------------------------------------- */
-
-.intervention-card {
-    background: #F8FAFC;
-
-    border: 1px solid #E1E6EC;
-
-    padding: 15px 18px;
-
-    border-radius: 10px;
-
-    margin-bottom: 10px;
-
-    color: #444444;
-
-    line-height: 1.55;
-}
-
-
-/* ---------------------------------------------------------
-   THERAPY CENTRE CARD
---------------------------------------------------------- */
-
-.centre-card {
-    background: white;
-
-    padding: 22px;
-
-    border-radius: 15px;
-
-    border: 1px solid #E3E6EA;
-
-    border-left: 5px solid #2E9E5B;
-
-    margin-bottom: 18px;
-
-    box-shadow:
-        0 3px 12px rgba(0,0,0,0.06);
-}
-
-.centre-name {
-    color: #111111;
-
-    font-size: 19px;
-
     font-weight: 700;
-
-    margin-bottom: 10px;
+    background: #F7F7F7;
+    border-left: 8px solid #C8102E;
+    border-radius: 4px;
+    padding: 12px 18px !important;
+    margin-top: 1.6rem;
+}
+.stApp h3 {
+    color: #C8102E;
+    font-size: 21px;
+    font-weight: 700;
 }
 
-.centre-detail {
-    color: #555555;
+/* ---------- Text ---------- */
+.stApp p, .stApp li { line-height: 1.65; }
+[data-testid="stCaptionContainer"] { color: #666; margin-top: -8px; margin-bottom: 10px; }
+label, [data-testid="stWidgetLabel"] p { color: #1A1A1A !important; font-weight: 700; }
 
-    line-height: 1.6;
-
-    margin-bottom: 5px;
+/* ---------- Boxes (info, success, warning) ---------- */
+[data-testid="stAlert"] {
+    background: #FFFFFF !important;
+    border: 1px solid #E3E3E3;
+    border-left: 6px solid #000;
+    border-radius: 6px;
+    color: #1A1A1A;
+}
+[data-testid="stAlert"] p { color: #1A1A1A !important; }
+[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) {
+    border-left-color: #2E9E5B;
+}
+[data-testid="stAlert"]:has([data-testid="stAlertContentWarning"]) {
+    border-left-color: #C8102E;
+    background: #FFF4F4 !important;
 }
 
-
-/* ---------------------------------------------------------
-   DISCLAIMER
---------------------------------------------------------- */
-
-.disclaimer-box {
-    background: #F1F3F5;
-
-    border-radius: 12px;
-
-    padding: 17px 20px;
-
-    color: #555555;
-
-    font-size: 14px;
-
-    line-height: 1.6;
-
-    margin-top: 25px;
+/* ---------- Inputs ---------- */
+.stTextInput input, .stDateInput input,
+div[data-baseweb="select"] > div {
+    border-radius: 6px !important;
+    background: #FAFAFA !important;
+    color: #1A1A1A !important;
+}
+div[data-baseweb="select"] > div:focus-within,
+.stTextInput input:focus, .stDateInput input:focus {
+    border-color: #C8102E !important;
+    box-shadow: 0 0 0 1px #C8102E !important;
 }
 
-
-/* ---------------------------------------------------------
-   REFERRAL NOTE
---------------------------------------------------------- */
-
-.referral-box {
-    background: #FFF8E6;
-
-    border-left: 5px solid #D99A00;
-
-    padding: 17px 20px;
-
-    border-radius: 10px;
-
-    color: #5C4500;
-
-    line-height: 1.6;
-
-    margin-top: 20px;
+/* ---------- Main button ---------- */
+button[kind="primary"], button[data-testid="stBaseButton-primary"] {
+    background: #C8102E !important;
+    color: #FFF !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: .85rem 1.5rem !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    font-family: 'Outfit', sans-serif !important;
+    transition: background .2s;
+}
+button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {
+    background: #8F0B21 !important;
+}
+button[kind="primary"]:focus-visible, button[data-testid="stBaseButton-primary"]:focus-visible {
+    outline: 3px solid #2E9E5B !important;
+    outline-offset: 2px;
 }
 
+/* ---------- Divider ---------- */
+hr { border: none !important; border-top: 2px solid #EEE !important; margin: 1.6rem 0 !important; }
 
-/* ---------------------------------------------------------
-   RESIDENCE CARD
---------------------------------------------------------- */
-
-.residence-card {
-    background: #F8FAFC;
-
-    border: 1px solid #E1E6EC;
-
-    padding: 16px 20px;
-
-    border-radius: 11px;
-
-    margin-bottom: 18px;
-}
-
-.residence-label {
-    color: #777777;
-
+/* ---------- Footer ---------- */
+.furaha-footer {
+    background: #000;
+    color: #D9D9D9;
+    text-align: center;
     font-size: 13px;
-
-    font-weight: 600;
-
-    text-transform: uppercase;
+    line-height: 1.7;
+    padding: 28px 20px;
+    margin-top: 44px;
+    border-radius: 6px;
+    border-top: 5px solid #2E9E5B;
 }
+.furaha-footer strong { color: #FFF; font-size: 15px; }
 
-.residence-value {
-    color: #222222;
-
-    font-size: 17px;
-
-    font-weight: 700;
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+    .block-container { padding: 1.2rem 1rem 2rem 1rem !important; }
+    .stApp h1 { font-size: 26px; padding: 24px 20px 22px 20px !important; }
+    .stApp h2 { font-size: 21px; }
 }
-
-
-/* ---------------------------------------------------------
-   PROGRESS / DIVIDERS
---------------------------------------------------------- */
-
-hr {
-    border: none;
-
-    border-top: 1px solid #E2E6EB;
-
-    margin: 28px 0;
-}
-
-
-/* ---------------------------------------------------------
-   CAPTIONS
---------------------------------------------------------- */
-
-.stCaption {
-    color: #666666 !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -806,22 +476,69 @@ def get_parent_comment(identified):
 # =========================================================
 # KENYA THERAPY / REHABILITATION CENTRES
 # =========================================================
+#
+# These records are referral information only.
+# They are NOT used by the ML model.
+#
+# Parents should contact the facility before travelling
+# to confirm current services, appointment requirements,
+# clinic days and telephone numbers.
+# =========================================================
 
 THERAPY_CENTRES = {
 
+    # -----------------------------------------------------
+    # BARINGO
+    # -----------------------------------------------------
+
     "Baringo": [],
+
+
+    # -----------------------------------------------------
+    # BOMET
+    # -----------------------------------------------------
 
     "Bomet": [],
 
+
+    # -----------------------------------------------------
+    # BUNGOMA
+    # -----------------------------------------------------
+
     "Bungoma": [],
+
+
+    # -----------------------------------------------------
+    # BUSIA
+    # -----------------------------------------------------
 
     "Busia": [],
 
+
+    # -----------------------------------------------------
+    # ELGEYO-MARAKWET
+    # -----------------------------------------------------
+
     "Elgeyo-Marakwet": [],
+
+
+    # -----------------------------------------------------
+    # EMBU
+    # -----------------------------------------------------
 
     "Embu": [],
 
+
+    # -----------------------------------------------------
+    # GARISSA
+    # -----------------------------------------------------
+
     "Garissa": [],
+
+
+    # -----------------------------------------------------
+    # HOMA BAY
+    # -----------------------------------------------------
 
     "Homa Bay": [
 
@@ -840,7 +557,17 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # ISIOLO
+    # -----------------------------------------------------
+
     "Isiolo": [],
+
+
+    # -----------------------------------------------------
+    # KAJIADO
+    # -----------------------------------------------------
 
     "Kajiado": [
 
@@ -872,17 +599,52 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # KAKAMEGA
+    # -----------------------------------------------------
+
     "Kakamega": [],
+
+
+    # -----------------------------------------------------
+    # KERICHO
+    # -----------------------------------------------------
 
     "Kericho": [],
 
+
+    # -----------------------------------------------------
+    # KIAMBU
+    # -----------------------------------------------------
+
     "Kiambu": [],
+
+
+    # -----------------------------------------------------
+    # KILIFI
+    # -----------------------------------------------------
 
     "Kilifi": [],
 
+
+    # -----------------------------------------------------
+    # KIRINYAGA
+    # -----------------------------------------------------
+
     "Kirinyaga": [],
 
+
+    # -----------------------------------------------------
+    # KISII
+    # -----------------------------------------------------
+
     "Kisii": [],
+
+
+    # -----------------------------------------------------
+    # KISUMU
+    # -----------------------------------------------------
 
     "Kisumu": [
 
@@ -900,13 +662,38 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # KITUI
+    # -----------------------------------------------------
+
     "Kitui": [],
+
+
+    # -----------------------------------------------------
+    # KWALE
+    # -----------------------------------------------------
 
     "Kwale": [],
 
+
+    # -----------------------------------------------------
+    # LAIKIPIA
+    # -----------------------------------------------------
+
     "Laikipia": [],
 
+
+    # -----------------------------------------------------
+    # LAMU
+    # -----------------------------------------------------
+
     "Lamu": [],
+
+
+    # -----------------------------------------------------
+    # MACHAKOS
+    # -----------------------------------------------------
 
     "Machakos": [
 
@@ -925,11 +712,31 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # MAKUENI
+    # -----------------------------------------------------
+
     "Makueni": [],
+
+
+    # -----------------------------------------------------
+    # MANDERA
+    # -----------------------------------------------------
 
     "Mandera": [],
 
+
+    # -----------------------------------------------------
+    # MARSABIT
+    # -----------------------------------------------------
+
     "Marsabit": [],
+
+
+    # -----------------------------------------------------
+    # MERU
+    # -----------------------------------------------------
 
     "Meru": [
 
@@ -987,7 +794,17 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # MIGORI
+    # -----------------------------------------------------
+
     "Migori": [],
+
+
+    # -----------------------------------------------------
+    # MOMBASA
+    # -----------------------------------------------------
 
     "Mombasa": [
 
@@ -1005,7 +822,17 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # MURANG'A
+    # -----------------------------------------------------
+
     "Murang'a": [],
+
+
+    # -----------------------------------------------------
+    # NAIROBI
+    # -----------------------------------------------------
 
     "Nairobi": [
 
@@ -1127,15 +954,45 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # NAKURU
+    # -----------------------------------------------------
+
     "Nakuru": [],
+
+
+    # -----------------------------------------------------
+    # NANDI
+    # -----------------------------------------------------
 
     "Nandi": [],
 
+
+    # -----------------------------------------------------
+    # NAROK
+    # -----------------------------------------------------
+
     "Narok": [],
+
+
+    # -----------------------------------------------------
+    # NYAMIRA
+    # -----------------------------------------------------
 
     "Nyamira": [],
 
+
+    # -----------------------------------------------------
+    # NYANDARUA
+    # -----------------------------------------------------
+
     "Nyandarua": [],
+
+
+    # -----------------------------------------------------
+    # NYERI
+    # -----------------------------------------------------
 
     "Nyeri": [
 
@@ -1166,23 +1023,73 @@ THERAPY_CENTRES = {
         }
     ],
 
+
+    # -----------------------------------------------------
+    # SAMBURU
+    # -----------------------------------------------------
+
     "Samburu": [],
+
+
+    # -----------------------------------------------------
+    # TAITA TAVETA
+    # -----------------------------------------------------
 
     "Taita Taveta": [],
 
+
+    # -----------------------------------------------------
+    # TANA RIVER
+    # -----------------------------------------------------
+
     "Tana River": [],
+
+
+    # -----------------------------------------------------
+    # THARAKA-NITHI
+    # -----------------------------------------------------
 
     "Tharaka-Nithi": [],
 
+
+    # -----------------------------------------------------
+    # TRANS NZOIA
+    # -----------------------------------------------------
+
     "Trans Nzoia": [],
+
+
+    # -----------------------------------------------------
+    # TURKANA
+    # -----------------------------------------------------
 
     "Turkana": [],
 
+
+    # -----------------------------------------------------
+    # UASIN GISHU
+    # -----------------------------------------------------
+
     "Uasin Gishu": [],
+
+
+    # -----------------------------------------------------
+    # VIHIGA
+    # -----------------------------------------------------
 
     "Vihiga": [],
 
+
+    # -----------------------------------------------------
+    # WAJIR
+    # -----------------------------------------------------
+
     "Wajir": [],
+
+
+    # -----------------------------------------------------
+    # WEST POKOT
+    # -----------------------------------------------------
 
     "West Pokot": []
 }
@@ -1210,6 +1117,7 @@ def screen_child(child_data):
         [child_data]
     )
 
+
     # -----------------------------------------------------
     # CREATE MISSINGNESS INDICATORS
     # -----------------------------------------------------
@@ -1229,6 +1137,7 @@ def screen_child(child_data):
                 .astype(int)
             )
 
+
     # -----------------------------------------------------
     # ARRANGE COLUMNS EXACTLY AS MODEL EXPECTS
     # -----------------------------------------------------
@@ -1238,6 +1147,7 @@ def screen_child(child_data):
         loaded_numeric_features
         + loaded_categorical_features
     )
+
 
     # -----------------------------------------------------
     # APPLY SAVED PREPROCESSING
@@ -1249,6 +1159,7 @@ def screen_child(child_data):
         )
     )
 
+
     # -----------------------------------------------------
     # MAKE PREDICTION
     # -----------------------------------------------------
@@ -1256,6 +1167,7 @@ def screen_child(child_data):
     predictions = loaded_model.predict(
         child_processed
     )[0]
+
 
     identified = []
 
@@ -1270,6 +1182,7 @@ def screen_child(child_data):
                 name
             )
 
+
     # -----------------------------------------------------
     # INTERVENTIONS
     # -----------------------------------------------------
@@ -1278,6 +1191,7 @@ def screen_child(child_data):
         identified
     )
 
+
     # -----------------------------------------------------
     # PARENT GUIDANCE
     # -----------------------------------------------------
@@ -1285,6 +1199,7 @@ def screen_child(child_data):
     parent_comment = get_parent_comment(
         identified
     )
+
 
     # -----------------------------------------------------
     # RESULT
@@ -1313,6 +1228,7 @@ def screen_child(child_data):
             "development as the child grows."
         )
 
+
     return {
 
         "result": result,
@@ -1334,49 +1250,17 @@ def screen_child(child_data):
 
 
 # =========================================================
-# FURAHA HEADER
+# TITLE
 # =========================================================
 
-st.markdown("""
-<div class="furaha-header">
+st.title(
+    "Furaha Child Development Screening"
+)
 
-    <div class="furaha-title">
-        Furaha Therapy and Care Centre
-    </div>
-
-    <div class="furaha-subtitle">
-        Child Development Screening Support System
-    </div>
-
-    <div class="furaha-tag">
-        For Parents & Caregivers
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
-
-# =========================================================
-# INTRODUCTION
-# =========================================================
-
-st.markdown("""
-<div class="info-card">
-
-    <div class="info-card-title">
-        🧒 Age-Based Child Functional Screening
-    </div>
-
-    <div class="info-card-text">
-        This tool provides screening support based on
-        the child's functional development, including
-        daily living, gross motor, fine motor and
-        sensory skills.
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
+st.write(
+    "Age-based functional screening support "
+    "for parents and caregivers."
+)
 
 st.info(
     "This tool provides screening support only. "
@@ -1385,22 +1269,12 @@ st.info(
 
 
 # =========================================================
-# SECTION 1 — CHILD INFORMATION
+# CHILD INFORMATION
 # =========================================================
 
-st.markdown("""
-<div class="section-title">
-
-    <div class="section-number">
-        Section 1
-    </div>
-
-    <div class="section-name">
-        Child Information
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
+st.header(
+    "1. Child Information"
+)
 
 
 # ---------------------------------------------------------
@@ -1422,13 +1296,8 @@ age_years, age_months = calculate_age(
     dob
 )
 
-st.markdown(
-    f"""
-    <div class="age-card">
-        Current age: {format_age(age_years, age_months)}
-    </div>
-    """,
-    unsafe_allow_html=True
+st.success(
+    f"Current age: {format_age(age_years, age_months)}"
 )
 
 
@@ -1436,11 +1305,9 @@ st.markdown(
 # CHILD RESIDENCE
 # =========================================================
 
-st.markdown("""
-<div class="subsection-title">
-    📍 Child Residence
-</div>
-""", unsafe_allow_html=True)
+st.subheader(
+    "Child Residence"
+)
 
 
 counties = [
@@ -1510,23 +1377,12 @@ subcounty = st.text_input(
 
 
 # =========================================================
-# SECTION 2 — ACTIVITIES OF DAILY LIVING
+# ACTIVITIES OF DAILY LIVING
 # =========================================================
 
-st.markdown("""
-<div class="section-title">
-
-    <div class="section-number">
-        Section 2
-    </div>
-
-    <div class="section-name">
-        Activities of Daily Living
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
+st.header(
+    "2. Activities of Daily Living"
+)
 
 st.write(
     "Activities of Daily Living (ADLs) are everyday "
@@ -1534,8 +1390,9 @@ st.write(
     "and participate in daily activities."
 )
 
-st.caption(
-    "Select the option that best describes the child's current ability."
+st.write(
+    "Select the option that best describes "
+    "the child's current ability."
 )
 
 
@@ -1584,23 +1441,12 @@ adl_mapping = {
 
 
 # =========================================================
-# SECTION 3 — GROSS MOTOR
+# GROSS MOTOR
 # =========================================================
 
-st.markdown("""
-<div class="section-title">
-
-    <div class="section-number">
-        Section 3
-    </div>
-
-    <div class="section-name">
-        Gross Motor Skills
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
+st.header(
+    "3. Gross Motor Skills"
+)
 
 st.info(
     "Gross motor skills are the ability to use the "
@@ -1687,23 +1533,12 @@ walking = gross_question(
 
 
 # =========================================================
-# SECTION 4 — FINE MOTOR
+# FINE MOTOR
 # =========================================================
 
-st.markdown("""
-<div class="section-title">
-
-    <div class="section-number">
-        Section 4
-    </div>
-
-    <div class="section-name">
-        Fine Motor Skills
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
+st.header(
+    "4. Fine Motor Skills"
+)
 
 st.info(
     "Fine motor skills are the ability to use the "
@@ -1796,23 +1631,12 @@ st.caption(
 
 
 # =========================================================
-# SECTION 5 — SENSORY
+# SENSORY SKILLS
 # =========================================================
 
-st.markdown("""
-<div class="section-title">
-
-    <div class="section-number">
-        Section 5
-    </div>
-
-    <div class="section-name">
-        Sensory Skills
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
+st.header(
+    "5. Sensory Skills"
+)
 
 st.info(
     "Sensory skills help a child receive, understand "
@@ -1900,10 +1724,10 @@ st.caption(
 # SCREENING BUTTON
 # =========================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
 
 screen_button = st.button(
-    "🧒  Screen Child",
+    "Screen Child",
     type="primary",
     use_container_width=True
 )
@@ -1914,6 +1738,7 @@ screen_button = st.button(
 # =========================================================
 
 if screen_button:
+
 
     # -----------------------------------------------------
     # CHECK ALL FIELDS
@@ -1966,6 +1791,7 @@ if screen_button:
         )
 
     else:
+
 
         # =================================================
         # GROSS MOTOR MODEL MAPPING
@@ -2157,11 +1983,18 @@ if screen_button:
 
         child_data = {
 
+            # ---------------------------------------------
             # AGE
+            # ---------------------------------------------
+
             "AgeAtAssessment":
                 age_years,
 
+
+            # ---------------------------------------------
             # ADLs
+            # ---------------------------------------------
+
             "ML_ADL_FeedingEating":
                 adl_mapping[feeding],
 
@@ -2174,7 +2007,11 @@ if screen_button:
             "ML_ADL_Grooming":
                 adl_mapping[grooming],
 
+
+            # ---------------------------------------------
             # GROSS MOTOR
+            # ---------------------------------------------
+
             "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_HeadControl":
                 head_control_model,
 
@@ -2196,7 +2033,11 @@ if screen_button:
             "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Walking":
                 walking_model,
 
+
+            # ---------------------------------------------
             # FINE MOTOR
+            # ---------------------------------------------
+
             "OccupationalPerformanceAreas_FineMotor_EyeTracking":
                 eye_tracking_model,
 
@@ -2215,7 +2056,11 @@ if screen_button:
             "OccupationalPerformanceAreas_FineMotor_Release":
                 release_model,
 
+
+            # ---------------------------------------------
             # SENSORY
+            # ---------------------------------------------
+
             "OccupationalPerformanceAreas_FineMotor_Sensory_Auditory":
                 {
                     "Good":
@@ -2232,11 +2077,14 @@ if screen_button:
 
                 }[auditory],
 
+
             "OccupationalPerformanceAreas_FineMotor_Sensory_Vestibular":
                 vestibular,
 
+
             "OccupationalPerformanceAreas_FineMotor_Sensory_Visual":
                 visual,
+
 
             "OccupationalPerformanceAreas_FineMotor_Sensory_Tactile":
                 {
@@ -2303,60 +2151,30 @@ if screen_button:
 
 
         # =================================================
-        # SCREENING RESULT
+        # DISPLAY SCREENING RESULT
         # =================================================
 
-        st.markdown("""
-        <div class="section-title">
+        st.divider()
 
-            <div class="section-number">
-                Assessment Complete
-            </div>
-
-            <div class="section-name">
-                Screening Result
-            </div>
-
-        </div>
-        """, unsafe_allow_html=True)
+        st.header(
+            "Screening Result"
+        )
 
 
         # =================================================
         # RESIDENCE SUMMARY
         # =================================================
 
-        st.markdown("""
-        <div class="subsection-title">
-            📍 Child Residence
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader(
+            "Child Residence"
+        )
 
+        st.write(
+            f"**County:** {county}"
+        )
 
-        st.markdown(
-            f"""
-            <div class="residence-card">
-
-                <div class="residence-label">
-                    County
-                </div>
-
-                <div class="residence-value">
-                    {county}
-                </div>
-
-                <br>
-
-                <div class="residence-label">
-                    Sub-county
-                </div>
-
-                <div class="residence-value">
-                    {subcounty}
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.write(
+            f"**Sub-county:** {subcounty}"
         )
 
 
@@ -2364,11 +2182,9 @@ if screen_button:
         # DX / OT IMPRESSION
         # =================================================
 
-        st.markdown("""
-        <div class="subsection-title">
-            🔎 Screening Impression
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader(
+            "DX / OT Screening Impression"
+        )
 
 
         if screening_result["identified"]:
@@ -2387,13 +2203,8 @@ if screen_button:
                     )
                 )
 
-                st.markdown(
-                    f"""
-                    <div class="condition-card">
-                        {parent_friendly_name}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                st.write(
+                    f"• {parent_friendly_name}"
                 )
 
         else:
@@ -2414,16 +2225,11 @@ if screen_button:
 
         if screening_result["identified"]:
 
-            st.markdown(
-                "<hr>",
-                unsafe_allow_html=True
-            )
+            st.divider()
 
-            st.markdown("""
-            <div class="subsection-title">
-                🧩 Suggested Intervention Approaches
-            </div>
-            """, unsafe_allow_html=True)
+            st.subheader(
+                "Suggested Intervention Approaches"
+            )
 
             st.write(
                 "The following approaches may be considered "
@@ -2434,13 +2240,8 @@ if screen_button:
                 "interventions"
             ]:
 
-                st.markdown(
-                    f"""
-                    <div class="intervention-card">
-                        {intervention}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                st.write(
+                    f"• {intervention}"
                 )
 
 
@@ -2448,16 +2249,11 @@ if screen_button:
         # RECOMMENDED ACTION
         # =================================================
 
-        st.markdown(
-            "<hr>",
-            unsafe_allow_html=True
-        )
+        st.divider()
 
-        st.markdown("""
-        <div class="subsection-title">
-            📌 Recommended Action
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader(
+            "Recommended Action"
+        )
 
         st.write(
             screening_result["guidance"]
@@ -2468,11 +2264,9 @@ if screen_button:
         # PARENT / CAREGIVER GUIDANCE
         # =================================================
 
-        st.markdown("""
-        <div class="subsection-title">
-            👨‍👩‍👧 Parent / Caregiver Guidance
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader(
+            "Parent / Caregiver Guidance"
+        )
 
 
         if screening_result["identified"]:
@@ -2492,17 +2286,11 @@ if screen_button:
         # SUGGESTED THERAPY CENTRES
         # =================================================
 
-        st.markdown(
-            "<hr>",
-            unsafe_allow_html=True
+        st.divider()
+
+        st.subheader(
+            "Suggested Therapy / Rehabilitation Centres"
         )
-
-        st.markdown("""
-        <div class="subsection-title">
-            🏥 Suggested Therapy / Rehabilitation Centres
-        </div>
-        """, unsafe_allow_html=True)
-
 
         st.write(
             f"Based on the child's residence in "
@@ -2520,37 +2308,30 @@ if screen_button:
             for centre in therapy_centres:
 
                 st.markdown(
-                    f"""
-                    <div class="centre-card">
-
-                        <div class="centre-name">
-                            🏥 {centre['name']}
-                        </div>
-
-                        <div class="centre-detail">
-                            <strong>Town/Area:</strong>
-                            {centre['town']}
-                        </div>
-
-                        <div class="centre-detail">
-                            <strong>Sub-county:</strong>
-                            {centre['subcounty']}
-                        </div>
-
-                        <div class="centre-detail">
-                            <strong>Services:</strong>
-                            {centre['services']}
-                        </div>
-
-                        <div class="centre-detail">
-                            <strong>Contact:</strong>
-                            {centre['contact']}
-                        </div>
-
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                    f"### 🏥 {centre['name']}"
                 )
+
+                st.write(
+                    f"**Town/Area:** "
+                    f"{centre['town']}"
+                )
+
+                st.write(
+                    f"**Sub-county:** "
+                    f"{centre['subcounty']}"
+                )
+
+                st.write(
+                    f"**Services:** "
+                    f"{centre['services']}"
+                )
+
+                st.write(
+                    f"**Contact:** "
+                    f"{centre['contact']}"
+                )
+
+                st.divider()
 
         else:
 
@@ -2573,20 +2354,11 @@ if screen_button:
         # IMPORTANT REFERRAL NOTE
         # =================================================
 
-        st.markdown(
-            f"""
-            <div class="referral-box">
-
-                <strong>Important referral note:</strong><br>
-
-                Please contact the facility before travelling
-                to confirm that the required child therapy
-                service is currently available and to confirm
-                the clinic day and appointment requirements.
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.warning(
+            "Please contact the facility before travelling "
+            "to confirm that the required child therapy "
+            "service is currently available and to confirm "
+            "the clinic day and appointment requirements."
         )
 
 
@@ -2594,37 +2366,22 @@ if screen_button:
         # DISCLAIMER
         # =================================================
 
-        st.markdown(
-            f"""
-            <div class="disclaimer-box">
+        st.divider()
 
-                <strong>Important:</strong><br>
-
-                {screening_result["disclaimer"]}
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.info(
+            screening_result["disclaimer"]
         )
 
 
 # =========================================================
-# FOOTER
+# FURAHA FOOTER (DESIGN ONLY)
 # =========================================================
 
 st.markdown("""
-<br><br>
-
-<div style="
-    text-align:center;
-    color:#888888;
-    font-size:13px;
-    padding:20px 0;
-">
-
-    Furaha Child Development Screening Support System<br>
-    Designed to support parents and caregivers in
-    early developmental screening.
-
+<div class="furaha-footer">
+    <strong>Furaha Therapy and Care Centre</strong><br>
+    Child Development Screening Support<br><br>
+    This tool is intended to support early screening and guidance.
+    It does not replace professional medical or developmental assessment.
 </div>
 """, unsafe_allow_html=True)
