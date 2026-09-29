@@ -8,7 +8,7 @@ from datetime import date
 # =========================================================
 
 st.set_page_config(
-    page_title="Furaha Child Screening",
+    page_title="Child Developmental Screening App",
     page_icon="🧒",
     layout="wide"
 )
@@ -76,7 +76,7 @@ header[data-testid="stHeader"] { background: #1A1614; border-bottom: 3px solid #
     margin-bottom: 14px;
 }
 .stApp h1::before {
-    content: "Furaha Therapy and Care Centre";
+    content: "Kenya";
     display: block;
     font-family: 'Nunito Sans', sans-serif;
     font-size: 15px;
@@ -1280,7 +1280,7 @@ if os.path.exists("FURAHA_LOGO.jpeg"):
 # =========================================================
 
 st.title(
-    "Furaha Child Development Screening"
+    "Child Developmental Screening App"
 )
 
 st.write(
@@ -2405,8 +2405,8 @@ if screen_button:
 
 st.markdown("""
 <div class="furaha-footer">
-    <strong>Furaha Therapy and Care Centre</strong><br>
-    Child Development Screening Support<br><br>
+    <strong>Child Developmental Screening App</strong><br>
+    Supported by Furaha Therapy and Care Centre<br><br>
     This tool is intended to support early screening and guidance.
     It does not replace professional medical or developmental assessment.
 </div>
