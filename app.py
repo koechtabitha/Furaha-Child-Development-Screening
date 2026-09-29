@@ -2609,9 +2609,18 @@ if screen_button:
         # DX / OT IMPRESSION
         # =================================================
 
-        st.subheader(
-            "DX / OT Screening Impression"
-        )
+        # Heading: singular for one impression, plural for more
+        if len(screening_result["identified"]) > 1:
+
+            st.subheader(
+                "Screening Impressions"
+            )
+
+        else:
+
+            st.subheader(
+                "Screening Impression"
+            )
 
 
         if screening_result["identified"]:
