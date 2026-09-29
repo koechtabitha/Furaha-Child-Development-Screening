@@ -3,9 +3,6 @@ import streamlit as st
 import pandas as pd
 import joblib
 from datetime import date
-st.write("Files available to Streamlit:")
-st.write(os.listdir("."))
-
 # =========================================================
 # PAGE SETTINGS
 # =========================================================
