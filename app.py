@@ -1,9 +1,8 @@
+import os
 import streamlit as st
 import pandas as pd
 import joblib
 from datetime import date
-
-
 # =========================================================
 # PAGE SETTINGS
 # =========================================================
@@ -16,491 +15,178 @@ st.set_page_config(
 
 
 # =========================================================
-# FURAHA WEBSITE-STYLE DESIGN
+# FURAHA DESIGN (COLOURS AND INTERFACE ONLY)
+# This block only changes how the app looks.
+# It does not change any screening logic below.
+# Colours are taken from the Furaha logo:
+# green (ring), yellow (sun), black (tree) and white
 # =========================================================
 
 st.markdown("""
 <style>
-
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
-
-/* =====================================================
-   MAIN COLOURS
-   ===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap');
 
 :root {
-    --furaha-blue: #1677A8;
-    --furaha-dark-blue: #075477;
-    --furaha-green: #65B86F;
-    --furaha-light-green: #EAF7EC;
-    --furaha-aqua: #EAF7FB;
-    --furaha-yellow: #F4C95D;
-    --furaha-dark: #263238;
-    --furaha-grey: #F5F8F9;
-    --furaha-border: #DCE7EB;
-    --furaha-white: #FFFFFF;
+    --f-black: #1A1614;
+    --f-green: #3A8A30;
+    --f-green-dark: #2C6B24;
+    --f-green-soft: #EAF4E6;
+    --f-yellow: #F6DF4F;
+    --f-yellow-soft: #FFFBDD;
 }
 
-
-/* =====================================================
-   PAGE
-   ===================================================== */
-
-.stApp {
-    background: #F4F8F9;
-    color: var(--furaha-dark);
-    font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
-}
-
-
-/* =====================================================
-   MAIN CONTENT
-   ===================================================== */
+/* ---------- Page and main column ---------- */
+.stApp { background: #F1F5EC; color: #1A1614; }
 
 .block-container {
-    max-width: 1100px;
+    max-width: 1000px;
     background: #FFFFFF;
-    margin-top: 1.2rem;
+    margin-top: 1.5rem;
     margin-bottom: 2rem;
-    padding: 0 2.5rem 3rem 2.5rem !important;
-    border-radius: 12px;
-    box-shadow: 0 3px 20px rgba(0, 70, 100, 0.08);
+    padding: 2.2rem 2.6rem 3rem 2.6rem !important;
+    border-radius: 8px;
+    box-shadow: 0 2px 14px rgba(0,0,0,.08);
+    border-top: 6px solid #3A8A30;
 }
 
-
-/* =====================================================
-   FONT
-   ===================================================== */
-
-.stApp,
-.stApp p,
-.stApp li,
-.stApp label,
-.stApp input,
-.stApp button,
-.stApp div[data-baseweb="select"] {
-    font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+/* ---------- Fonts ---------- */
+.stApp p, .stApp li, .stApp label, .stApp input,
+.stApp button, .stApp div[data-baseweb="select"] {
+    font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+}
+.stApp h1, .stApp h2, .stApp h3 {
+    font-family: 'Outfit', 'Segoe UI', Arial, sans-serif;
 }
 
-.stApp h1,
-.stApp h2,
-.stApp h3 {
-    font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
-    font-weight: 800;
-}
+/* ---------- Hide Streamlit menu and footer ---------- */
+#MainMenu, footer { visibility: hidden; }
+header[data-testid="stHeader"] { background: #1A1614; border-bottom: 3px solid #F6DF4F; }
 
-
-/* =====================================================
-   STREAMLIT HEADER
-   ===================================================== */
-
-header[data-testid="stHeader"] {
-    background: #FFFFFF;
-    border-bottom: 3px solid var(--furaha-green);
-}
-
-#MainMenu,
-footer {
-    visibility: hidden;
-}
-
-
-/* =====================================================
-   MAIN TITLE
-   ===================================================== */
-
+/* ---------- Title becomes the black banner ---------- */
 .stApp h1 {
-    background: linear-gradient(
-        135deg,
-        #075477 0%,
-        #1677A8 70%,
-        #65B86F 100%
-    );
-
-    color: #FFFFFF !important;
-
-    font-size: 36px;
-    line-height: 1.2;
-
-    padding: 30px 34px !important;
-
-    margin: 0 -2.5rem 22px -2.5rem;
-
-    border-radius: 0 0 14px 14px;
-
-    box-shadow: 0 4px 12px rgba(0, 70, 100, 0.12);
+    background: #1A1614;
+    color: #FFF !important;
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.15;
+    padding: 34px 36px 30px 36px !important;
+    border-radius: 6px;
+    border-bottom: 8px solid;
+    border-image: linear-gradient(to right, #3A8A30 0 68%, #F6DF4F 68% 88%, #1A1614 88%) 1;
+    margin-bottom: 14px;
 }
-
 .stApp h1::before {
     content: "Furaha Therapy and Care Centre";
     display: block;
-
+    font-family: 'Nunito Sans', sans-serif;
     font-size: 15px;
-    font-weight: 600;
-
-    color: #EAF7FB;
-
-    margin-bottom: 8px;
-}
-
-
-/* =====================================================
-   SECTION HEADINGS
-   ===================================================== */
-
-.stApp h2 {
-    color: var(--furaha-dark-blue);
-
-    background: var(--furaha-aqua);
-
-    border-left: 7px solid var(--furaha-blue);
-
-    border-radius: 7px;
-
-    padding: 12px 18px !important;
-
-    margin-top: 1.8rem;
-
-    font-size: 25px;
-}
-
-
-.stApp h3 {
-    color: var(--furaha-dark-blue);
-
-    font-size: 21px;
-
-    margin-top: 1.4rem;
-}
-
-
-/* =====================================================
-   TEXT
-   ===================================================== */
-
-.stApp p,
-.stApp li {
-    line-height: 1.65;
-}
-
-label,
-[data-testid="stWidgetLabel"] p {
-    color: var(--furaha-dark) !important;
-    font-weight: 700 !important;
-}
-
-[data-testid="stCaptionContainer"] {
-    color: #607D86;
-    margin-top: -6px;
-    margin-bottom: 12px;
-}
-
-
-/* =====================================================
-   INFORMATION BOXES
-   ===================================================== */
-
-[data-testid="stAlert"] {
-    border-radius: 9px !important;
-
-    border: 1px solid var(--furaha-border) !important;
-
-    background: #FFFFFF !important;
-
-    color: var(--furaha-dark) !important;
-
-    box-shadow: 0 2px 8px rgba(0, 70, 100, 0.04);
-}
-
-[data-testid="stAlert"] p {
-    color: var(--furaha-dark) !important;
-}
-
-
-/* Info */
-
-[data-testid="stAlert"]:has(
-    [data-testid="stAlertContentInfo"]
-) {
-    border-left: 6px solid var(--furaha-blue) !important;
-    background: var(--furaha-aqua) !important;
-}
-
-
-/* Success */
-
-[data-testid="stAlert"]:has(
-    [data-testid="stAlertContentSuccess"]
-) {
-    border-left: 6px solid var(--furaha-green) !important;
-    background: var(--furaha-light-green) !important;
-}
-
-
-/* Warning */
-
-[data-testid="stAlert"]:has(
-    [data-testid="stAlertContentWarning"]
-) {
-    border-left: 6px solid var(--furaha-yellow) !important;
-    background: #FFF9E8 !important;
-}
-
-
-/* Error */
-
-[data-testid="stAlert"]:has(
-    [data-testid="stAlertContentError"]
-) {
-    border-left: 6px solid #D9534F !important;
-}
-
-
-/* =====================================================
-   INPUTS
-   ===================================================== */
-
-.stTextInput input,
-.stDateInput input,
-div[data-baseweb="select"] > div {
-
-    border-radius: 8px !important;
-
-    background: #FFFFFF !important;
-
-    color: var(--furaha-dark) !important;
-
-    border: 1px solid var(--furaha-border) !important;
-
-    min-height: 44px;
-}
-
-
-.stTextInput input:focus,
-.stDateInput input:focus,
-div[data-baseweb="select"] > div:focus-within {
-
-    border-color: var(--furaha-blue) !important;
-
-    box-shadow:
-        0 0 0 1px var(--furaha-blue) !important;
-}
-
-
-/* =====================================================
-   PRIMARY BUTTON
-   ===================================================== */
-
-button[kind="primary"],
-button[data-testid="stBaseButton-primary"] {
-
-    background:
-        linear-gradient(
-            90deg,
-            #075477,
-            #1677A8
-        ) !important;
-
-    color: #FFFFFF !important;
-
-    border: none !important;
-
-    border-radius: 8px !important;
-
-    padding: 0.85rem 1.5rem !important;
-
-    font-size: 18px !important;
-
-    font-weight: 800 !important;
-
-    transition: all 0.2s ease;
-}
-
-
-button[kind="primary"]:hover,
-button[data-testid="stBaseButton-primary"]:hover {
-
-    background:
-        linear-gradient(
-            90deg,
-            #054360,
-            #0F668F
-        ) !important;
-
-    transform: translateY(-1px);
-
-    box-shadow:
-        0 4px 10px rgba(7, 84, 119, 0.20);
-}
-
-
-button[kind="primary"]:focus-visible,
-button[data-testid="stBaseButton-primary"]:focus-visible {
-
-    outline: 3px solid var(--furaha-green) !important;
-
-    outline-offset: 2px;
-}
-
-
-/* =====================================================
-   DIVIDERS
-   ===================================================== */
-
-hr {
-    border: none !important;
-
-    border-top:
-        2px solid #E8EFF1 !important;
-
-    margin: 1.7rem 0 !important;
-}
-
-
-/* =====================================================
-   THERAPY CENTRE CARDS
-   ===================================================== */
-
-.furaha-centre-card {
-
-    background: #FFFFFF;
-
-    border: 1px solid var(--furaha-border);
-
-    border-left: 6px solid var(--furaha-green);
-
-    border-radius: 10px;
-
-    padding: 18px 20px;
-
-    margin: 15px 0;
-
-    box-shadow:
-        0 3px 10px rgba(0, 70, 100, 0.06);
-}
-
-
-.furaha-centre-name {
-
-    color: var(--furaha-dark-blue);
-
-    font-size: 20px;
-
-    font-weight: 800;
-
+    font-weight: 700;
+    color: #F6DF4F;
     margin-bottom: 10px;
 }
 
-
-.furaha-centre-label {
-
-    color: var(--furaha-blue);
-
-    font-weight: 800;
+/* ---------- Section headings ---------- */
+.stApp h2 {
+    color: #1A1614;
+    font-size: 25px;
+    font-weight: 700;
+    background: #FFFBDD;
+    border-left: 8px solid #3A8A30;
+    border-radius: 4px;
+    padding: 12px 18px !important;
+    margin-top: 1.6rem;
 }
-
-
-/* =====================================================
-   RESULT BOX
-   ===================================================== */
-
-.furaha-result {
-
-    background: var(--furaha-aqua);
-
-    border: 1px solid #CDE6EF;
-
-    border-left: 7px solid var(--furaha-blue);
-
-    border-radius: 9px;
-
-    padding: 18px 20px;
-
-    margin: 12px 0 18px 0;
-}
-
-
-.furaha-result-title {
-
-    color: var(--furaha-dark-blue);
-
+.stApp h3 {
+    color: #2C6B24;
     font-size: 21px;
-
-    font-weight: 800;
-
-    margin-bottom: 8px;
+    font-weight: 700;
 }
 
+/* ---------- Text ---------- */
+.stApp p, .stApp li { line-height: 1.65; }
+[data-testid="stCaptionContainer"] { color: #666; margin-top: -8px; margin-bottom: 10px; }
+label, [data-testid="stWidgetLabel"] p { color: #1A1614 !important; font-weight: 700; }
 
-/* =====================================================
-   FOOTER
-   ===================================================== */
+/* ---------- Boxes (info, success, warning) ---------- */
+[data-testid="stAlert"] {
+    background: #FFFFFF !important;
+    border: 1px solid #E3E3E3;
+    border-left: 6px solid #1A1614;
+    border-radius: 6px;
+    color: #1A1614;
+}
+[data-testid="stAlert"] p { color: #1A1614 !important; }
+[data-testid="stAlert"]:has([data-testid="stAlertContentInfo"]) {
+    border-left-color: #F6DF4F;
+    background: #FFFDF0 !important;
+}
+[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) {
+    border-left-color: #3A8A30;
+    background: #EAF4E6 !important;
+}
+[data-testid="stAlert"]:has([data-testid="stAlertContentWarning"]) {
+    border-left-color: #E0B800;
+    background: #FFF8CC !important;
+}
 
+/* ---------- Inputs ---------- */
+.stTextInput input, .stDateInput input,
+div[data-baseweb="select"] > div {
+    border-radius: 6px !important;
+    background: #FAFAFA !important;
+    color: #1A1614 !important;
+}
+div[data-baseweb="select"] > div:focus-within,
+.stTextInput input:focus, .stDateInput input:focus {
+    border-color: #3A8A30 !important;
+    box-shadow: 0 0 0 1px #3A8A30 !important;
+}
+
+/* ---------- Main button ---------- */
+button[kind="primary"], button[data-testid="stBaseButton-primary"] {
+    background: #3A8A30 !important;
+    color: #FFF !important;
+    border: none !important;
+    border-bottom: 4px solid #F6DF4F !important;
+    border-radius: 6px !important;
+    padding: .85rem 1.5rem !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    font-family: 'Outfit', sans-serif !important;
+    transition: background .2s;
+}
+button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {
+    background: #2C6B24 !important;
+}
+button[kind="primary"]:focus-visible, button[data-testid="stBaseButton-primary"]:focus-visible {
+    outline: 3px solid #F6DF4F !important;
+    outline-offset: 2px;
+}
+
+/* ---------- Divider ---------- */
+hr { border: none !important; border-top: 2px solid #EEE !important; margin: 1.6rem 0 !important; }
+
+/* ---------- Footer ---------- */
 .furaha-footer {
-
-    background:
-        linear-gradient(
-            135deg,
-            #075477,
-            #1677A8
-        );
-
-    color: #EAF7FB;
-
+    background: #1A1614;
+    color: #D9D9D9;
     text-align: center;
-
     font-size: 13px;
-
     line-height: 1.7;
-
     padding: 28px 20px;
-
-    margin-top: 45px;
-
-    border-radius: 10px;
-
-    border-top: 5px solid var(--furaha-green);
+    margin-top: 44px;
+    border-radius: 6px;
+    border-top: 5px solid #F6DF4F;
+    border-bottom: 5px solid #3A8A30;
 }
+.furaha-footer strong { color: #F6DF4F; font-size: 15px; }
 
-
-.furaha-footer strong {
-
-    color: #FFFFFF;
-
-    font-size: 17px;
-}
-
-
-/* =====================================================
-   MOBILE
-   ===================================================== */
-
+/* ---------- Phones ---------- */
 @media (max-width: 640px) {
-
-    .block-container {
-
-        padding:
-            0 1rem 2rem 1rem !important;
-    }
-
-    .stApp h1 {
-
-        font-size: 27px;
-
-        padding:
-            25px 20px !important;
-
-        margin-left: -1rem;
-
-        margin-right: -1rem;
-    }
-
-    .stApp h2 {
-
-        font-size: 21px;
-    }
+    .block-container { padding: 1.2rem 1rem 2rem 1rem !important; }
+    .stApp h1 { font-size: 26px; padding: 24px 20px 22px 20px !important; }
+    .stApp h2 { font-size: 21px; }
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -522,20 +208,10 @@ def load_model():
 model_package = load_model()
 
 loaded_model = model_package["model"]
-
 loaded_preprocessor = model_package["preprocessor"]
-
-loaded_numeric_features = (
-    model_package["numeric_features"]
-)
-
-loaded_categorical_features = (
-    model_package["categorical_features"]
-)
-
-loaded_target_names = (
-    model_package["target_names"]
-)
+loaded_numeric_features = model_package["numeric_features"]
+loaded_categorical_features = model_package["categorical_features"]
+loaded_target_names = model_package["target_names"]
 
 
 # =========================================================
@@ -558,16 +234,13 @@ def calculate_age(dob):
     today = date.today()
 
     years = today.year - dob.year
-
     months = today.month - dob.month
 
     if today.day < dob.day:
         months -= 1
 
     if months < 0:
-
         years -= 1
-
         months += 12
 
     return years, months
@@ -594,13 +267,9 @@ def format_age(years, months):
         return f"{years} years old"
 
     year_text = "year" if years == 1 else "years"
-
     month_text = "month" if months == 1 else "months"
 
-    return (
-        f"{years} {year_text} "
-        f"{months} {month_text} old"
-    )
+    return f"{years} {year_text} {months} {month_text} old"
 
 
 # =========================================================
@@ -764,13 +433,9 @@ def get_interventions(identified):
 
     for impression in identified:
 
-        impression_text = str(
-            impression
-        ).lower()
+        impression_text = str(impression).lower()
 
-        for condition, intervention_list in (
-            INTERVENTION_INFORMATION.items()
-        ):
+        for condition, intervention_list in INTERVENTION_INFORMATION.items():
 
             if condition.lower() in impression_text:
 
@@ -828,350 +493,621 @@ def get_parent_comment(identified):
 # =========================================================
 # KENYA THERAPY / REHABILITATION CENTRES
 # =========================================================
+#
+# These records are referral information only.
+# They are NOT used by the ML model.
+#
+# Parents should contact the facility before travelling
+# to confirm current services, appointment requirements,
+# clinic days and telephone numbers.
+# =========================================================
 
 THERAPY_CENTRES = {
 
+    # -----------------------------------------------------
+    # BARINGO
+    # -----------------------------------------------------
+
     "Baringo": [],
+
+
+    # -----------------------------------------------------
+    # BOMET
+    # -----------------------------------------------------
+
     "Bomet": [],
+
+
+    # -----------------------------------------------------
+    # BUNGOMA
+    # -----------------------------------------------------
+
     "Bungoma": [],
+
+
+    # -----------------------------------------------------
+    # BUSIA
+    # -----------------------------------------------------
+
     "Busia": [],
+
+
+    # -----------------------------------------------------
+    # ELGEYO-MARAKWET
+    # -----------------------------------------------------
+
     "Elgeyo-Marakwet": [],
+
+
+    # -----------------------------------------------------
+    # EMBU
+    # -----------------------------------------------------
+
     "Embu": [],
+
+
+    # -----------------------------------------------------
+    # GARISSA
+    # -----------------------------------------------------
+
     "Garissa": [],
 
+
+    # -----------------------------------------------------
+    # HOMA BAY
+    # -----------------------------------------------------
+
     "Homa Bay": [
+
         {
-            "name":
-                "Homa Bay County Teaching and Referral Hospital",
-            "town":
-                "Homa Bay",
-            "subcounty":
-                "Homa Bay",
-            "services":
-                "Occupational Therapy, Physiotherapy, Speech and Language Therapy and developmental milestone support",
-            "contact":
+            "name": "Homa Bay County Teaching and Referral Hospital",
+            "town": "Homa Bay",
+            "subcounty": "Homa Bay",
+            "services": (
+                "Occupational Therapy, Physiotherapy, "
+                "Speech and Language Therapy and "
+                "developmental milestone support"
+            ),
+            "contact": (
                 "0798 954417 / 0733 481568"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # ISIOLO
+    # -----------------------------------------------------
+
     "Isiolo": [],
+
+
+    # -----------------------------------------------------
+    # KAJIADO
+    # -----------------------------------------------------
 
     "Kajiado": [
 
         {
-            "name":
-                "Gertrude's Children's Hospital - Kajiado",
-            "town":
-                "Kajiado",
-            "subcounty":
-                "Kajiado",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
-                "Contact Gertrude's Children's Hospital to confirm current branch details"
+            "name": "Gertrude's Children's Hospital - Kajiado",
+            "town": "Kajiado",
+            "subcounty": "Kajiado",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
+                "Contact Gertrude's Children's Hospital "
+                "to confirm current branch details"
+            )
         },
 
         {
-            "name":
-                "Jofreshia Family",
-            "town":
-                "Ngong",
-            "subcounty":
-                "Kajiado",
-            "services":
-                "Occupational Therapy, Physiotherapy, Fine Motor, Sensory and Daily Living Skills",
-            "contact":
+            "name": "Jofreshia Family",
+            "town": "Ngong",
+            "subcounty": "Kajiado",
+            "services": (
+                "Occupational Therapy, Physiotherapy, "
+                "Fine Motor, Sensory and Daily Living Skills"
+            ),
+            "contact": (
                 "+254 711 455400 / +254 722 919407"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # KAKAMEGA
+    # -----------------------------------------------------
+
     "Kakamega": [],
+
+
+    # -----------------------------------------------------
+    # KERICHO
+    # -----------------------------------------------------
+
     "Kericho": [],
+
+
+    # -----------------------------------------------------
+    # KIAMBU
+    # -----------------------------------------------------
+
     "Kiambu": [],
+
+
+    # -----------------------------------------------------
+    # KILIFI
+    # -----------------------------------------------------
+
     "Kilifi": [],
+
+
+    # -----------------------------------------------------
+    # KIRINYAGA
+    # -----------------------------------------------------
+
     "Kirinyaga": [],
+
+
+    # -----------------------------------------------------
+    # KISII
+    # -----------------------------------------------------
+
     "Kisii": [],
+
+
+    # -----------------------------------------------------
+    # KISUMU
+    # -----------------------------------------------------
 
     "Kisumu": [
 
         {
-            "name":
-                "Gertrude's Children's Hospital - Kisumu Medical Centre",
-            "town":
-                "Kisumu",
-            "subcounty":
-                "Kisumu",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's Children's Hospital - Kisumu Medical Centre",
+            "town": "Kisumu",
+            "subcounty": "Kisumu",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "0709 529017 / 0730 645017"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # KITUI
+    # -----------------------------------------------------
+
     "Kitui": [],
+
+
+    # -----------------------------------------------------
+    # KWALE
+    # -----------------------------------------------------
+
     "Kwale": [],
+
+
+    # -----------------------------------------------------
+    # LAIKIPIA
+    # -----------------------------------------------------
+
     "Laikipia": [],
+
+
+    # -----------------------------------------------------
+    # LAMU
+    # -----------------------------------------------------
+
     "Lamu": [],
+
+
+    # -----------------------------------------------------
+    # MACHAKOS
+    # -----------------------------------------------------
 
     "Machakos": [
 
         {
-            "name":
-                "Gertrude's Children's Hospital - Machakos",
-            "town":
-                "Machakos",
-            "subcounty":
-                "Machakos",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
-                "Contact Gertrude's Children's Hospital to confirm current branch details"
+            "name": "Gertrude's Children's Hospital - Machakos",
+            "town": "Machakos",
+            "subcounty": "Machakos",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
+                "Contact Gertrude's Children's Hospital "
+                "to confirm current branch details"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # MAKUENI
+    # -----------------------------------------------------
+
     "Makueni": [],
+
+
+    # -----------------------------------------------------
+    # MANDERA
+    # -----------------------------------------------------
+
     "Mandera": [],
+
+
+    # -----------------------------------------------------
+    # MARSABIT
+    # -----------------------------------------------------
+
     "Marsabit": [],
+
+
+    # -----------------------------------------------------
+    # MERU
+    # -----------------------------------------------------
 
     "Meru": [
 
         {
-            "name":
-                "Meru Teaching and Referral Hospital",
-            "town":
-                "Meru Town",
-            "subcounty":
-                "Imenti North",
-            "services":
-                "Occupational Therapy, Physiotherapy and Rehabilitation",
-            "contact":
-                "Contact the hospital to confirm the current rehabilitation clinic contact"
+            "name": "Meru Teaching and Referral Hospital",
+            "town": "Meru Town",
+            "subcounty": "Imenti North",
+            "services": (
+                "Occupational Therapy, Physiotherapy "
+                "and Rehabilitation"
+            ),
+            "contact": (
+                "Contact the hospital to confirm the "
+                "current rehabilitation clinic contact"
+            )
         },
 
         {
-            "name":
-                "Furaha Therapy and Care Centre",
-            "town":
-                "Meru",
-            "subcounty":
-                "Imenti North",
-            "services":
-                "Occupational Therapy, Sensory Integration, Physiotherapy and child care support",
-            "contact":
+            "name": "Furaha Therapy and Care Centre",
+            "town": "Meru",
+            "subcounty": "Imenti North",
+            "services": (
+                "Occupational Therapy, Sensory Integration, "
+                "Physiotherapy and child care support"
+            ),
+            "contact": (
                 "+254 727 077844"
+            )
         },
 
         {
-            "name":
-                "Gertrude's Children's Hospital - Meru Medical Centre",
-            "town":
-                "Meru",
-            "subcounty":
-                "Imenti North",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's Children's Hospital - Meru Medical Centre",
+            "town": "Meru",
+            "subcounty": "Imenti North",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "0709 529018 / 0730 645018"
+            )
         },
 
         {
-            "name":
-                "Take A Moment Rehabilitation Centre",
-            "town":
-                "Mugene-Kithoka Market",
-            "subcounty":
-                "Imenti North",
-            "services":
-                "Rehabilitation services",
-            "contact":
-                "Contact the facility to confirm current child therapy services"
+            "name": "Take A Moment Rehabilitation Centre",
+            "town": "Mugene-Kithoka Market",
+            "subcounty": "Imenti North",
+            "services": (
+                "Rehabilitation services"
+            ),
+            "contact": (
+                "Contact the facility to confirm current "
+                "child therapy services"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # MIGORI
+    # -----------------------------------------------------
+
     "Migori": [],
+
+
+    # -----------------------------------------------------
+    # MOMBASA
+    # -----------------------------------------------------
 
     "Mombasa": [
 
         {
-            "name":
-                "Gertrude's Children's Hospital - Mombasa Medical Centre",
-            "town":
-                "Nyali",
-            "subcounty":
-                "Mombasa",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's Children's Hospital - Mombasa Medical Centre",
+            "town": "Nyali",
+            "subcounty": "Mombasa",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206011 / 0730 645011 / 0709 529011"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # MURANG'A
+    # -----------------------------------------------------
+
     "Murang'a": [],
+
+
+    # -----------------------------------------------------
+    # NAIROBI
+    # -----------------------------------------------------
 
     "Nairobi": [
 
         {
-            "name":
-                "Kenyatta National Hospital",
-            "town":
-                "Nairobi",
-            "subcounty":
-                "Kibra",
-            "services":
-                "Paediatric Occupational Therapy, Sensory Integration, Physiotherapy and Rehabilitation",
-            "contact":
+            "name": "Kenyatta National Hospital",
+            "town": "Nairobi",
+            "subcounty": "Kibra",
+            "services": (
+                "Paediatric Occupational Therapy, "
+                "Sensory Integration, Physiotherapy "
+                "and Rehabilitation"
+            ),
+            "contact": (
                 "020 2726300 / 0709 854000 / 0730 643000"
+            )
         },
 
         {
-            "name":
-                "Gertrude's Children's Hospital",
-            "town":
-                "Muthaiga",
-            "subcounty":
-                "Nairobi",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's Children's Hospital",
+            "town": "Muthaiga",
+            "subcounty": "Nairobi",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206000 / 0730 645000 / 0709 529000"
+            )
         },
 
         {
-            "name":
-                "Gertrude's - Lavington Medical Centre",
-            "town":
-                "Lavington",
-            "subcounty":
-                "Nairobi",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's - Lavington Medical Centre",
+            "town": "Lavington",
+            "subcounty": "Nairobi",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206002 / 0730 645002 / 0709 529002"
+            )
         },
 
         {
-            "name":
-                "Gertrude's - Donholm Medical Centre",
-            "town":
-                "Donholm",
-            "subcounty":
-                "Nairobi",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's - Donholm Medical Centre",
+            "town": "Donholm",
+            "subcounty": "Nairobi",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206003 / 0730 645003 / 0709 529003"
+            )
         },
 
         {
-            "name":
-                "Gertrude's - Nairobi West Medical Centre",
-            "town":
-                "Nairobi West",
-            "subcounty":
-                "Nairobi",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's - Nairobi West Medical Centre",
+            "town": "Nairobi West",
+            "subcounty": "Nairobi",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206015 / 0730 645015 / 0709 529015"
+            )
         },
 
         {
-            "name":
-                "Gertrude's - Komarock Medical Centre",
-            "town":
-                "Komarock",
-            "subcounty":
-                "Nairobi",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's - Komarock Medical Centre",
+            "town": "Komarock",
+            "subcounty": "Nairobi",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206007 / 0730 645007 / 0709 529007"
+            )
         },
 
         {
-            "name":
-                "Gertrude's - Sarit Centre",
-            "town":
-                "Westlands",
-            "subcounty":
-                "Westlands",
-            "services":
-                "Child Occupational Therapy, Speech Therapy and Physiotherapy",
-            "contact":
+            "name": "Gertrude's - Sarit Centre",
+            "town": "Westlands",
+            "subcounty": "Westlands",
+            "services": (
+                "Child Occupational Therapy, Speech Therapy "
+                "and Physiotherapy"
+            ),
+            "contact": (
                 "020 7206014 / 0730 645014 / 0709 529014"
+            )
         },
 
         {
-            "name":
-                "Sinai Outpatient Rehabilitation Centre",
-            "town":
-                "Sinai Village",
-            "subcounty":
-                "Makadara",
-            "services":
-                "Occupational Therapy and Rehabilitation",
-            "contact":
+            "name": "Sinai Outpatient Rehabilitation Centre",
+            "town": "Sinai Village",
+            "subcounty": "Makadara",
+            "services": (
+                "Occupational Therapy and Rehabilitation"
+            ),
+            "contact": (
                 "Confirm current facility contact before visiting"
+            )
         },
 
         {
-            "name":
-                "Restore Hospital",
-            "town":
-                "Karen",
-            "subcounty":
-                "Lang'ata",
-            "services":
-                "Occupational Therapy, Physiotherapy and Rehabilitation",
-            "contact":
+            "name": "Restore Hospital",
+            "town": "Karen",
+            "subcounty": "Lang'ata",
+            "services": (
+                "Occupational Therapy, Physiotherapy "
+                "and Rehabilitation"
+            ),
+            "contact": (
                 "Confirm current facility contact before visiting"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # NAKURU
+    # -----------------------------------------------------
+
     "Nakuru": [],
+
+
+    # -----------------------------------------------------
+    # NANDI
+    # -----------------------------------------------------
+
     "Nandi": [],
+
+
+    # -----------------------------------------------------
+    # NAROK
+    # -----------------------------------------------------
+
     "Narok": [],
+
+
+    # -----------------------------------------------------
+    # NYAMIRA
+    # -----------------------------------------------------
+
     "Nyamira": [],
+
+
+    # -----------------------------------------------------
+    # NYANDARUA
+    # -----------------------------------------------------
+
     "Nyandarua": [],
+
+
+    # -----------------------------------------------------
+    # NYERI
+    # -----------------------------------------------------
 
     "Nyeri": [
 
         {
-            "name":
-                "Naromoru Disabled Children's Home",
-            "town":
-                "Naromoru",
-            "subcounty":
-                "Kieni",
-            "services":
-                "Occupational Therapy, Physiotherapy and Orthopaedic Assistive Devices",
-            "contact":
+            "name": "Naromoru Disabled Children's Home",
+            "town": "Naromoru",
+            "subcounty": "Kieni",
+            "services": (
+                "Occupational Therapy, Physiotherapy "
+                "and Orthopaedic Assistive Devices"
+            ),
+            "contact": (
                 "+254 724 447066 / 010 16832884"
+            )
         },
 
         {
-            "name":
-                "Metropolitan Sanctuary for Children With Disability",
-            "town":
-                "Kamakwa",
-            "subcounty":
-                "Nyeri Central",
-            "services":
-                "Physiotherapy, Orthopaedic and Occupational Therapy rehabilitation",
-            "contact":
+            "name": "Metropolitan Sanctuary for Children With Disability",
+            "town": "Kamakwa",
+            "subcounty": "Nyeri Central",
+            "services": (
+                "Physiotherapy, Orthopaedic and "
+                "Occupational Therapy rehabilitation"
+            ),
+            "contact": (
                 "Confirm current facility contact before visiting"
+            )
         }
     ],
 
+
+    # -----------------------------------------------------
+    # SAMBURU
+    # -----------------------------------------------------
+
     "Samburu": [],
+
+
+    # -----------------------------------------------------
+    # TAITA TAVETA
+    # -----------------------------------------------------
+
     "Taita Taveta": [],
+
+
+    # -----------------------------------------------------
+    # TANA RIVER
+    # -----------------------------------------------------
+
     "Tana River": [],
+
+
+    # -----------------------------------------------------
+    # THARAKA-NITHI
+    # -----------------------------------------------------
+
     "Tharaka-Nithi": [],
+
+
+    # -----------------------------------------------------
+    # TRANS NZOIA
+    # -----------------------------------------------------
+
     "Trans Nzoia": [],
+
+
+    # -----------------------------------------------------
+    # TURKANA
+    # -----------------------------------------------------
+
     "Turkana": [],
+
+
+    # -----------------------------------------------------
+    # UASIN GISHU
+    # -----------------------------------------------------
+
     "Uasin Gishu": [],
+
+
+    # -----------------------------------------------------
+    # VIHIGA
+    # -----------------------------------------------------
+
     "Vihiga": [],
+
+
+    # -----------------------------------------------------
+    # WAJIR
+    # -----------------------------------------------------
+
     "Wajir": [],
+
+
+    # -----------------------------------------------------
+    # WEST POKOT
+    # -----------------------------------------------------
+
     "West Pokot": []
 }
 
@@ -1198,6 +1134,11 @@ def screen_child(child_data):
         [child_data]
     )
 
+
+    # -----------------------------------------------------
+    # CREATE MISSINGNESS INDICATORS
+    # -----------------------------------------------------
+
     for col in missing_cols:
 
         original_col = col.replace(
@@ -1213,11 +1154,21 @@ def screen_child(child_data):
                 .astype(int)
             )
 
+
+    # -----------------------------------------------------
+    # ARRANGE COLUMNS EXACTLY AS MODEL EXPECTS
+    # -----------------------------------------------------
+
     child_df = child_df.reindex(
         columns=
         loaded_numeric_features
         + loaded_categorical_features
     )
+
+
+    # -----------------------------------------------------
+    # APPLY SAVED PREPROCESSING
+    # -----------------------------------------------------
 
     child_processed = (
         loaded_preprocessor.transform(
@@ -1225,9 +1176,15 @@ def screen_child(child_data):
         )
     )
 
+
+    # -----------------------------------------------------
+    # MAKE PREDICTION
+    # -----------------------------------------------------
+
     predictions = loaded_model.predict(
         child_processed
     )[0]
+
 
     identified = []
 
@@ -1242,13 +1199,28 @@ def screen_child(child_data):
                 name
             )
 
+
+    # -----------------------------------------------------
+    # INTERVENTIONS
+    # -----------------------------------------------------
+
     interventions = get_interventions(
         identified
     )
 
+
+    # -----------------------------------------------------
+    # PARENT GUIDANCE
+    # -----------------------------------------------------
+
     parent_comment = get_parent_comment(
         identified
     )
+
+
+    # -----------------------------------------------------
+    # RESULT
+    # -----------------------------------------------------
 
     if identified:
 
@@ -1273,30 +1245,34 @@ def screen_child(child_data):
             "development as the child grows."
         )
 
+
     return {
 
-        "result":
-            result,
+        "result": result,
 
-        "identified":
-            identified,
+        "identified": identified,
 
-        "interventions":
-            interventions,
+        "interventions": interventions,
 
-        "guidance":
-            guidance,
+        "guidance": guidance,
 
-        "parent_comment":
-            parent_comment,
+        "parent_comment": parent_comment,
 
-        "disclaimer":
-            (
-                "This tool provides screening support "
-                "only and does not provide a medical "
-                "diagnosis."
-            )
+        "disclaimer": (
+            "This tool provides screening support "
+            "only and does not provide a medical "
+            "diagnosis."
+        )
     }
+
+
+# =========================================================
+# FURAHA LOGO (DESIGN ONLY)
+# Put FURAHA_LOGO.jpeg in the same folder as this file
+# =========================================================
+
+if os.path.exists("FURAHA_LOGO.jpeg"):
+    st.image("FURAHA_LOGO.jpeg", width=150)
 
 
 # =========================================================
@@ -1327,12 +1303,20 @@ st.header(
 )
 
 
+# ---------------------------------------------------------
+# DATE OF BIRTH
+# ---------------------------------------------------------
+
 dob = st.date_input(
     "Date of Birth",
     min_value=date(1990, 1, 1),
     max_value=date.today()
 )
 
+
+# ---------------------------------------------------------
+# CALCULATE AGE
+# ---------------------------------------------------------
 
 age_years, age_months = calculate_age(
     dob
@@ -1467,6 +1451,10 @@ grooming = adl_question(
     "Grooming"
 )
 
+
+# =========================================================
+# ADL CONVERSION
+# =========================================================
 
 adl_mapping = {
 
@@ -1777,13 +1765,20 @@ screen_button = st.button(
 
 if screen_button:
 
+
+    # -----------------------------------------------------
+    # CHECK ALL FIELDS
+    # -----------------------------------------------------
+
     selections = [
 
+        # ADLs
         feeding,
         toileting,
         dressing,
         grooming,
 
+        # Gross motor
         head_control,
         rolling,
         trunk_stability,
@@ -1792,6 +1787,7 @@ if screen_button:
         standing,
         walking,
 
+        # Fine motor
         eye_tracking,
         eye_hand,
         bilateral,
@@ -1799,6 +1795,7 @@ if screen_button:
         manipulation,
         release,
 
+        # Sensory
         auditory,
         vestibular,
         visual,
@@ -1820,6 +1817,7 @@ if screen_button:
         )
 
     else:
+
 
         # =================================================
         # GROSS MOTOR MODEL MAPPING
@@ -2011,8 +2009,17 @@ if screen_button:
 
         child_data = {
 
+            # ---------------------------------------------
+            # AGE
+            # ---------------------------------------------
+
             "AgeAtAssessment":
                 age_years,
+
+
+            # ---------------------------------------------
+            # ADLs
+            # ---------------------------------------------
 
             "ML_ADL_FeedingEating":
                 adl_mapping[feeding],
@@ -2025,6 +2032,11 @@ if screen_button:
 
             "ML_ADL_Grooming":
                 adl_mapping[grooming],
+
+
+            # ---------------------------------------------
+            # GROSS MOTOR
+            # ---------------------------------------------
 
             "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_HeadControl":
                 head_control_model,
@@ -2047,6 +2059,11 @@ if screen_button:
             "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Walking":
                 walking_model,
 
+
+            # ---------------------------------------------
+            # FINE MOTOR
+            # ---------------------------------------------
+
             "OccupationalPerformanceAreas_FineMotor_EyeTracking":
                 eye_tracking_model,
 
@@ -2065,25 +2082,47 @@ if screen_button:
             "OccupationalPerformanceAreas_FineMotor_Release":
                 release_model,
 
+
+            # ---------------------------------------------
+            # SENSORY
+            # ---------------------------------------------
+
             "OccupationalPerformanceAreas_FineMotor_Sensory_Auditory":
                 {
-                    "Good": "Good",
-                    "Moderate": "Moderate",
-                    "Highly responsive": "Hyperactive",
-                    "Less responsive": "Hypoactive"
+                    "Good":
+                        "Good",
+
+                    "Moderate":
+                        "Moderate",
+
+                    "Highly responsive":
+                        "Hyperactive",
+
+                    "Less responsive":
+                        "Hypoactive"
+
                 }[auditory],
+
 
             "OccupationalPerformanceAreas_FineMotor_Sensory_Vestibular":
                 vestibular,
 
+
             "OccupationalPerformanceAreas_FineMotor_Sensory_Visual":
                 visual,
 
+
             "OccupationalPerformanceAreas_FineMotor_Sensory_Tactile":
                 {
-                    "Good": "Good",
-                    "Highly sensitive": "Hyper sensitive",
-                    "Less sensitive": "Hypo sensitive"
+                    "Good":
+                        "Good",
+
+                    "Highly sensitive":
+                        "Hyper sensitive",
+
+                    "Less sensitive":
+                        "Hypo sensitive"
+
                 }[tactile]
         }
 
@@ -2295,45 +2334,30 @@ if screen_button:
             for centre in therapy_centres:
 
                 st.markdown(
-                    f"""
-                    <div class="furaha-centre-card">
-
-                        <div class="furaha-centre-name">
-                            🏥 {centre['name']}
-                        </div>
-
-                        <div>
-                            <span class="furaha-centre-label">
-                                Town/Area:
-                            </span>
-                            {centre['town']}
-                        </div>
-
-                        <div>
-                            <span class="furaha-centre-label">
-                                Sub-county:
-                            </span>
-                            {centre['subcounty']}
-                        </div>
-
-                        <div>
-                            <span class="furaha-centre-label">
-                                Services:
-                            </span>
-                            {centre['services']}
-                        </div>
-
-                        <div>
-                            <span class="furaha-centre-label">
-                                Contact:
-                            </span>
-                            {centre['contact']}
-                        </div>
-
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                    f"### 🏥 {centre['name']}"
                 )
+
+                st.write(
+                    f"**Town/Area:** "
+                    f"{centre['town']}"
+                )
+
+                st.write(
+                    f"**Sub-county:** "
+                    f"{centre['subcounty']}"
+                )
+
+                st.write(
+                    f"**Services:** "
+                    f"{centre['services']}"
+                )
+
+                st.write(
+                    f"**Contact:** "
+                    f"{centre['contact']}"
+                )
+
+                st.divider()
 
         else:
 
@@ -2376,27 +2400,14 @@ if screen_button:
 
 
 # =========================================================
-# FURAHA FOOTER
+# FURAHA FOOTER (DESIGN ONLY)
 # =========================================================
 
 st.markdown("""
 <div class="furaha-footer">
-
-    <strong>Furaha Therapy and Care Centre</strong>
-
-    <br>
-
-    Child Development Screening Support
-
-    <br><br>
-
-    This tool is intended to support early screening
-    and guidance.
-
-    <br>
-
-    It does not replace professional medical or
-    developmental assessment.
-
+    <strong>Furaha Therapy and Care Centre</strong><br>
+    Child Development Screening Support<br><br>
+    This tool is intended to support early screening and guidance.
+    It does not replace professional medical or developmental assessment.
 </div>
 """, unsafe_allow_html=True)
