@@ -2177,6 +2177,76 @@ if screen_button:
 
 
         # =================================================
+        # ALL-TYPICAL ANSWERS RULE (ADDED)
+        # The saved model was trained only on children who
+        # already have a condition, so it can wrongly flag a
+        # child whose answers are all typical. If every answer
+        # is the typical one, show the "continue monitoring"
+        # result instead. Nothing above this line is changed.
+        # =================================================
+
+        typical_answers = [
+
+            (feeding, "Achieved"),
+            (toileting, "Achieved"),
+            (dressing, "Achieved"),
+            (grooming, "Achieved"),
+
+            (head_control, "Head steady"),
+            (rolling, "Rolls fully"),
+            (trunk_stability, "Body steady"),
+            (sitting, "Sits without support"),
+            (crawling, "Achieved"),
+            (standing, "Stands without support"),
+            (walking, "Walks without support"),
+
+            (eye_tracking, "Past midline"),
+            (eye_hand, "Good coordination"),
+            (bilateral, "Uses both hands well"),
+            (grasp, "Good grasp"),
+            (manipulation, "Manipulates well"),
+            (release, "Releases well"),
+
+            (auditory, "Good"),
+            (visual, "Good"),
+            (tactile, "Good"),
+            (vestibular, "Good"),
+            (proprioception, "Good")
+        ]
+
+        all_typical = all(
+            answer == typical
+            for answer, typical in typical_answers
+        )
+
+        if all_typical:
+
+            screening_result = {
+
+                "result": (
+                    "No strong screening indicators identified"
+                ),
+
+                "identified": [],
+
+                "interventions": get_interventions([]),
+
+                "guidance": (
+                    "Continue monitoring the child's "
+                    "development as the child grows."
+                ),
+
+                "parent_comment": get_parent_comment([]),
+
+                "disclaimer": (
+                    "This tool provides screening support "
+                    "only and does not provide a medical "
+                    "diagnosis."
+                )
+            }
+
+
+        # =================================================
         # DISPLAY SCREENING RESULT
         # =================================================
 
