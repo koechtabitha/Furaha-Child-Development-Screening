@@ -1747,6 +1747,251 @@ st.caption(
 
 
 # =========================================================
+# 6. PROBLEMS IDENTIFIED (ADDED)
+# =========================================================
+#
+# The list below was taken from the "OTProblemsIdentified"
+# column of the admissions data. Similar entries were joined
+# together so that each problem appears only once. No child
+# names or personal data are stored in this app.
+#
+# Each problem has a short, simple meaning for parents.
+# =========================================================
+
+import re
+
+# (key, name shown to parent, simple meaning)
+PROBLEM_LIST = [
+
+    ("milestones", "Delayed milestones",
+     "The child is slow to learn skills like holding the head up, "
+     "sitting, crawling, standing or walking."),
+
+    ("speech", "Speech delay or unclear speech",
+     "The child speaks late, says few words, or is hard to "
+     "understand for their age."),
+
+    ("attention", "Poor attention",
+     "The child is easily distracted and cannot stay with one "
+     "activity for long."),
+
+    ("balance", "Poor balance or posture",
+     "The child is unsteady, falls easily, slumps, or finds it "
+     "hard to keep the body upright."),
+
+    ("finemotor", "Poor hand and finger skills",
+     "The child finds it hard to hold a spoon, crayon or small "
+     "objects, or to use both hands together."),
+
+    ("hyper", "Very active or restless",
+     "The child cannot sit still and is always moving, running "
+     "or climbing."),
+
+    ("lowtone", "Floppy or weak body",
+     "The child's body feels loose or soft, and the child tires "
+     "easily."),
+
+    ("eye", "Poor eye contact",
+     "The child rarely looks at your face or eyes when you talk "
+     "or play."),
+
+    ("hightone", "Stiff body",
+     "The child's arms or legs feel tight or stiff and are hard "
+     "to move or bend."),
+
+    ("social", "Difficulty playing or mixing with others",
+     "The child does not play with, or respond to, other "
+     "children or people."),
+
+    ("adl", "Needs a lot of help with daily tasks",
+     "The child needs more help than expected with eating, "
+     "dressing, toileting or washing."),
+
+    ("drool", "Drooling",
+     "Saliva often runs out of the mouth, more than expected "
+     "for the child's age."),
+
+    ("weak", "Weak arms or legs",
+     "The child's arms or legs seem weak, or one side is used "
+     "less than the other."),
+
+    ("tantrum", "Frequent tantrums",
+     "Strong outbursts of crying, screaming or anger that are "
+     "hard to calm."),
+
+    ("tactile", "Strong reaction to touch",
+     "The child dislikes certain clothes, textures, messy play "
+     "or being touched."),
+
+    ("repetitive", "Repeated movements or sounds",
+     "The child repeats actions such as hand flapping, rocking, "
+     "spinning or head banging, or repeats words again and again."),
+
+    ("tiptoe", "Walking on tiptoes",
+     "The child often walks on the toes instead of the whole foot."),
+
+    ("impuls", "Acts without thinking",
+     "The child acts very quickly, interrupts, or finds it hard "
+     "to wait."),
+
+    ("regress", "Lost skills",
+     "The child could do something before, like say a word or "
+     "make a movement, but has stopped doing it."),
+
+    ("feeding", "Feeding difficulty",
+     "The child has trouble chewing, swallowing or accepting "
+     "some foods."),
+
+    ("sound", "Strong reaction to sounds",
+     "The child covers the ears, gets upset by noise, or does "
+     "not seem to respond to sounds."),
+
+    ("sleep", "Poor sleep",
+     "The child has trouble falling asleep or staying asleep."),
+
+    ("fits", "Fits (convulsions)",
+     "Sudden shaking of the body, sometimes with loss of "
+     "awareness."),
+]
+
+PROBLEM_NAMES = {
+    key: name
+    for key, name, meaning in PROBLEM_LIST
+}
+
+
+# Words used to recognise a problem typed in "Other problem"
+PROBLEM_KEYWORDS = {
+
+    "milestones": r"milestone|ddm|developmental delay|delayed (in )?walking|not (yet )?(sitting|crawling|walking|standing)|head control",
+    "speech": r"speech|speak|talk|words|language|articulat|non.?verbal|babbl",
+    "attention": r"attention|concentrat|distract|focus",
+    "balance": r"balance|postur|trunk|unsteady|falls|coordination",
+    "finemotor": r"fine motor|hand function|grasp|writing|holding",
+    "hyper": r"hyperactiv|restless",
+    "lowtone": r"low (muscle )?tone|floppy|hypotoni",
+    "eye": r"eye contact",
+    "hightone": r"high (muscle )?tone|stiff|spastic|hypertoni",
+    "social": r"social|interact|play with",
+    "adl": r"adl|potty|toilet|dressing|bathing|self.?care",
+    "drool": r"drool|drull|saliva",
+    "weak": r"weak",
+    "tantrum": r"tantrum|aggress|meltdown",
+    "tactile": r"tactile|touch|texture|defensive",
+    "repetitive": r"mannerism|stimming|flapping|rocking|head banging|echolalia|spinning",
+    "tiptoe": r"tip.?toe|toe walking",
+    "impuls": r"impulsiv",
+    "regress": r"regress|lost (a )?skill|stopped (talking|walking|speaking)",
+    "feeding": r"feeding|chew|swallow|picky",
+    "sound": r"auditory|noise|loud sound",
+    "sleep": r"sleep",
+    "fits": r"convuls|seizure|\bfits?\b|epilep"
+}
+
+
+def match_problem_keywords(text):
+
+    text = str(text).lower()
+
+    return {
+        key
+        for key, pattern in PROBLEM_KEYWORDS.items()
+        if re.search(pattern, text)
+    }
+
+
+# How much each problem supports each screening impression.
+# An impression is added only when the total reaches
+# PROBLEM_SCORE_NEEDED. Therapists can change these numbers.
+# (Names match the model's target names.)
+PROBLEM_SCORE_NEEDED = 2
+
+PROBLEM_SUPPORT = {
+
+    "speech": {"Speech Delay": 2},
+    "milestones": {"Developmental Delay": 2},
+    "hightone": {"CP": 2},
+
+    "drool": {"CP": 1},
+    "weak": {"CP": 1, "Developmental Delay": 1},
+    "balance": {"CP": 1, "Developmental Delay": 1},
+    "tiptoe": {"CP": 1, "ASD": 1},
+
+    "lowtone": {"Developmental Delay": 1},
+    "finemotor": {"Developmental Delay": 1},
+    "adl": {"Developmental Delay": 1},
+    "feeding": {"Developmental Delay": 1},
+
+    "hyper": {"ADHD": 1},
+    "attention": {"ADHD": 1},
+    "impuls": {"ADHD": 1},
+
+    "eye": {"ASD": 1},
+    "social": {"ASD": 1},
+    "repetitive": {"ASD": 1},
+    "tantrum": {"ASD": 1},
+    "tactile": {"ASD": 1},
+    "sound": {"ASD": 1},
+    "sleep": {"ASD": 1}
+}
+
+PROBLEM_IMPRESSION_NAMES = {
+
+    "CP": "Cerebral Palsy",
+    "ASD": "Autism Spectrum Disorder",
+    "ADHD": "Attention-Deficit/Hyperactivity Disorder",
+    "Speech Delay": "Delayed Speech",
+    "Developmental Delay": "Developmental Delay",
+    "Hemiplegia": "Hemiplegia",
+    "Down Syndrome": "Down Syndrome"
+}
+
+
+selected_problem_keys = []
+other_problem_text = ""
+
+# The problems list only appears if the parent or caregiver
+# says they have noticed a problem.
+
+has_problems = st.checkbox(
+    "I have noticed a problem with my child (optional)",
+    key="has_problems"
+)
+
+if has_problems:
+
+    st.header(
+        "6. Problems Identified"
+    )
+
+    st.write(
+        "Tick every problem you have noticed in the child. "
+        "The short meaning under each problem will help you "
+        "choose."
+    )
+
+    for key, name, meaning in PROBLEM_LIST:
+
+        if st.checkbox(
+            name,
+            key=f"problem_{key}"
+        ):
+            selected_problem_keys.append(
+                key
+            )
+
+        st.caption(
+            meaning
+        )
+
+    other_problem_text = st.text_input(
+        "Other problem",
+        placeholder="Type a problem that is not in the list",
+        key="other_problem"
+    )
+
+
+# =========================================================
 # SCREENING BUTTON
 # =========================================================
 
@@ -2247,6 +2492,92 @@ if screen_button:
 
 
         # =================================================
+        # ADD PROBLEMS IDENTIFIED TO THE SCREENING (ADDED)
+        # The model result above is kept. The problems the
+        # parent selected give extra information, and can
+        # add possible screening impressions.
+        # =================================================
+
+        all_problem_keys = set(selected_problem_keys)
+
+        if other_problem_text.strip():
+
+            all_problem_keys |= match_problem_keywords(
+                other_problem_text
+            )
+
+        problem_impressions = []
+
+        if all_problem_keys:
+
+            problem_scores = {}
+
+            for problem_key in all_problem_keys:
+
+                for impression, weight in PROBLEM_SUPPORT.get(
+                    problem_key,
+                    {}
+                ).items():
+
+                    problem_scores[impression] = (
+                        problem_scores.get(impression, 0)
+                        + weight
+                    )
+
+            for impression, score in problem_scores.items():
+
+                if (
+                    score >= PROBLEM_SCORE_NEEDED
+                    and impression not in screening_result["identified"]
+                ):
+
+                    problem_impressions.append(
+                        impression
+                    )
+
+            if problem_impressions:
+
+                screening_result["identified"] = (
+                    list(screening_result["identified"])
+                    + problem_impressions
+                )
+
+                screening_result["result"] = (
+                    "Screening indicators identified"
+                )
+
+                screening_result["interventions"] = get_interventions(
+                    screening_result["identified"]
+                )
+
+                screening_result["guidance"] = (
+                    "The screening result suggests that "
+                    "further professional assessment may "
+                    "be helpful."
+                )
+
+                screening_result["parent_comment"] = get_parent_comment(
+                    screening_result["identified"]
+                )
+
+            elif not screening_result["identified"]:
+
+                screening_result["guidance"] = (
+                    "You have noted concerns about the child. "
+                    "Further assessment by a qualified health "
+                    "professional or therapist may be helpful."
+                )
+
+                screening_result["parent_comment"] = (
+                    "You have noted one or more problems with "
+                    "the child. Please consider visiting a "
+                    "therapy centre or health centre for "
+                    "assessment and advice, even if no strong "
+                    "screening indicator was identified."
+                )
+
+
+        # =================================================
         # DISPLAY SCREENING RESULT
         # =================================================
 
@@ -2312,6 +2643,64 @@ if screen_button:
             st.write(
                 "No DX/OT screening impression was "
                 "identified from the information provided."
+            )
+
+
+        # =================================================
+        # PROBLEMS IDENTIFIED (ADDED)
+        # Shown only when the parent or caregiver selected or
+        # typed a problem.
+        # =================================================
+
+        if selected_problem_keys or other_problem_text.strip():
+
+            st.divider()
+
+            st.subheader(
+                "Problems Identified by Parent / Caregiver"
+            )
+
+            for problem_key in selected_problem_keys:
+
+                st.write(
+                    f"• {PROBLEM_NAMES[problem_key]}"
+                )
+
+            if other_problem_text.strip():
+
+                st.write(
+                    f"• Other: {other_problem_text.strip()}"
+                )
+
+            if problem_impressions:
+
+                added_names = ", ".join(
+                    PROBLEM_IMPRESSION_NAMES.get(name, name)
+                    for name in problem_impressions
+                )
+
+                st.info(
+                    "The problems you selected, together with "
+                    "the answers above, also point towards: "
+                    f"{added_names}. This is a screening idea "
+                    "only and is not a diagnosis."
+                )
+
+            if (
+                "fits" in all_problem_keys
+                or "regress" in all_problem_keys
+            ):
+
+                st.warning(
+                    "Fits and lost skills should be checked "
+                    "by a doctor or health worker soon. "
+                    "Please do not wait."
+                )
+
+            st.write(
+                "This tool does not give medication or a "
+                "diagnosis. Please ask a qualified health "
+                "professional or therapist to assess the child."
             )
 
 
