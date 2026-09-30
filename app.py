@@ -1328,6 +1328,133 @@ st.success(
 
 
 # =========================================================
+# AGE-BASED QUESTIONS (ADDED)
+# Only questions that suit the child's age are shown.
+# Other questions appear as the child grows.
+# =========================================================
+#
+# The numbers below are STARTING VALUES taken from commonly
+# used developmental milestones. They must be checked and
+# changed by the Furaha therapists.
+#
+# AGE_RULES: the age in months from which each question
+# is shown. A question that is not shown is sent to the
+# model as a missing value, not as "Not achieved".
+#
+# MODEL_MIN_AGE_MONTHS: below this age the app does not give
+# a screening impression from the model. In testing, typical
+# babies younger than 12 months were still flagged, because
+# the training data has no typical babies.
+# =========================================================
+
+import numpy as np
+
+age_total_months = age_years * 12 + age_months
+
+MODEL_MIN_AGE_MONTHS = 12
+
+AGE_RULES = {
+
+    # Activities of Daily Living
+    "Feeding": 6,
+    "Toileting": 24,
+    "Dressing": 24,
+    "Grooming": 24,
+
+    # Gross motor
+    "Head control": 0,
+    "Rolling over": 3,
+    "Trunk stability": 4,
+    "Sitting": 4,
+    "Crawling": 6,
+    "Standing": 6,
+    "Walking": 9,
+
+    # Fine motor
+    "Eye tracking": 0,
+    "Eye-hand coordination": 3,
+    "Bilateral hand use": 4,
+    "Grasp": 3,
+    "Manipulation": 6,
+    "Release": 9,
+
+    # Sensory
+    "Auditory response": 0,
+    "Visual response": 0,
+    "Tactile response": 0,
+    "Vestibular response": 3,
+    "Proprioception": 6
+}
+
+# Where each question goes in the model input
+QUESTION_MODEL_KEYS = {
+
+    "Feeding": ["ML_ADL_FeedingEating"],
+    "Toileting": ["ML_ADL_Toileting"],
+    "Dressing": ["ML_ADL_GroomingDressingSkills"],
+    "Grooming": ["ML_ADL_Grooming"],
+
+    "Head control": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_HeadControl"],
+    "Rolling over": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_RollingOver"],
+    "Trunk stability": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_TrunkStablity"],
+    "Sitting": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Sitting"],
+    "Crawling": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Crawling"],
+    "Standing": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Standing"],
+    "Walking": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Walking"],
+
+    "Eye tracking": ["OccupationalPerformanceAreas_FineMotor_EyeTracking"],
+    "Eye-hand coordination": ["OccupationalPerformanceAreas_FineMotor_EyeHandCordination"],
+    "Bilateral hand use": ["OccupationalPerformanceAreas_FineMotor_BilateralHandUse"],
+    "Grasp": ["OccupationalPerformanceAreas_FineMotor_Grasp"],
+    "Manipulation": ["OccupationalPerformanceAreas_FineMotor_Manipulation"],
+    "Release": ["OccupationalPerformanceAreas_FineMotor_Release"],
+
+    "Auditory response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Auditory"],
+    "Visual response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Visual"],
+    "Tactile response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Tactile"],
+    "Vestibular response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Vestibular"],
+
+    "Proprioception": [
+        "OccupationalPerformanceAreas_FineMotor_Sensory_Proprioception",
+        "Sensory_Proprioception",
+        "Proprioception"
+    ]
+}
+
+hidden_questions = set()
+
+question_state = {"last_hidden": False}
+
+
+def question_applies(label):
+
+    return age_total_months >= AGE_RULES.get(label, 0)
+
+
+def caption_if_shown(text):
+
+    # The short explanation under a question is shown
+    # only when the question itself is shown.
+
+    if not question_state["last_hidden"]:
+
+        st.caption(
+            text
+        )
+
+
+if any(
+    age_total_months < months
+    for months in AGE_RULES.values()
+):
+
+    st.info(
+        "Only the questions that suit the child's age are shown. "
+        "More questions will appear as the child grows."
+    )
+
+
+# =========================================================
 # CHILD RESIDENCE
 # =========================================================
 
@@ -1435,6 +1562,35 @@ def adl_question(label):
     )
 
 
+# ---------------------------------------------------------
+# Show ADL questions only when they suit the child's age
+# (the original adl_question function above is kept)
+# ---------------------------------------------------------
+
+_shown_adl_question = adl_question
+
+
+def adl_question(label):
+
+    if question_applies(label):
+
+        question_state["last_hidden"] = False
+
+        return _shown_adl_question(
+            label
+        )
+
+    question_state["last_hidden"] = True
+
+    hidden_questions.add(
+        label
+    )
+
+    # Placeholder only. It is replaced by a missing value
+    # before the model is used.
+    return "Achieved"
+
+
 feeding = adl_question(
     "Feeding"
 )
@@ -1487,6 +1643,37 @@ def gross_question(label, options):
         label,
         ["Select"] + options
     )
+
+
+# ---------------------------------------------------------
+# Show gross motor, fine motor and sensory questions only
+# when they suit the child's age
+# (the original gross_question function above is kept)
+# ---------------------------------------------------------
+
+_shown_gross_question = gross_question
+
+
+def gross_question(label, options):
+
+    if question_applies(label):
+
+        question_state["last_hidden"] = False
+
+        return _shown_gross_question(
+            label,
+            options
+        )
+
+    question_state["last_hidden"] = True
+
+    hidden_questions.add(
+        label
+    )
+
+    # Placeholder only. It is replaced by a missing value
+    # before the model is used.
+    return options[0]
 
 
 head_control = gross_question(
@@ -1580,7 +1767,7 @@ eye_tracking = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Following an object with the eyes from one side "
     "of the body to the other."
 )
@@ -1595,7 +1782,7 @@ eye_hand = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Using the eyes and hands together."
 )
 
@@ -1609,7 +1796,7 @@ bilateral = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Using both hands together."
 )
 
@@ -1623,7 +1810,7 @@ grasp = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Holding objects with the hand and fingers."
 )
 
@@ -1637,7 +1824,7 @@ manipulation = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Picking and moving things using the hands."
 )
 
@@ -1651,7 +1838,7 @@ release = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Letting go of an object using the hands."
 )
 
@@ -1681,7 +1868,7 @@ auditory = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Ability to hear and respond to sounds."
 )
 
@@ -1696,7 +1883,7 @@ visual = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Ability to see and process what is seen."
 )
 
@@ -1710,7 +1897,7 @@ tactile = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Ability to feel and respond to touch."
 )
 
@@ -1727,7 +1914,7 @@ vestibular = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Ability to sense balance and body movement."
 )
 
@@ -1741,7 +1928,7 @@ proprioception = gross_question(
     ]
 )
 
-st.caption(
+caption_if_shown(
     "Knowing where your body parts are without looking."
 )
 
@@ -2398,6 +2585,24 @@ if screen_button:
 
 
         # =================================================
+        # QUESTIONS NOT SHOWN FOR THIS AGE (ADDED)
+        # A skill that is not yet expected is a missing value,
+        # not "Not achieved".
+        # =================================================
+
+        for hidden_label in hidden_questions:
+
+            for model_key in QUESTION_MODEL_KEYS.get(
+                hidden_label,
+                []
+            ):
+
+                if model_key in child_data:
+
+                    child_data[model_key] = np.nan
+
+
+        # =================================================
         # RUN MODEL
         # =================================================
 
@@ -2432,36 +2637,38 @@ if screen_button:
 
         typical_answers = [
 
-            (feeding, "Achieved"),
-            (toileting, "Achieved"),
-            (dressing, "Achieved"),
-            (grooming, "Achieved"),
+            ("Feeding", feeding, "Achieved"),
+            ("Toileting", toileting, "Achieved"),
+            ("Dressing", dressing, "Achieved"),
+            ("Grooming", grooming, "Achieved"),
 
-            (head_control, "Head steady"),
-            (rolling, "Rolls fully"),
-            (trunk_stability, "Body steady"),
-            (sitting, "Sits without support"),
-            (crawling, "Achieved"),
-            (standing, "Stands without support"),
-            (walking, "Walks without support"),
+            ("Head control", head_control, "Head steady"),
+            ("Rolling over", rolling, "Rolls fully"),
+            ("Trunk stability", trunk_stability, "Body steady"),
+            ("Sitting", sitting, "Sits without support"),
+            ("Crawling", crawling, "Achieved"),
+            ("Standing", standing, "Stands without support"),
+            ("Walking", walking, "Walks without support"),
 
-            (eye_tracking, "Past midline"),
-            (eye_hand, "Good coordination"),
-            (bilateral, "Uses both hands well"),
-            (grasp, "Good grasp"),
-            (manipulation, "Manipulates well"),
-            (release, "Releases well"),
+            ("Eye tracking", eye_tracking, "Past midline"),
+            ("Eye-hand coordination", eye_hand, "Good coordination"),
+            ("Bilateral hand use", bilateral, "Uses both hands well"),
+            ("Grasp", grasp, "Good grasp"),
+            ("Manipulation", manipulation, "Manipulates well"),
+            ("Release", release, "Releases well"),
 
-            (auditory, "Good"),
-            (visual, "Good"),
-            (tactile, "Good"),
-            (vestibular, "Good"),
-            (proprioception, "Good")
+            ("Auditory response", auditory, "Good"),
+            ("Visual response", visual, "Good"),
+            ("Tactile response", tactile, "Good"),
+            ("Vestibular response", vestibular, "Good"),
+            ("Proprioception", proprioception, "Good")
         ]
 
+        # Questions not shown for the child's age are ignored
         all_typical = all(
             answer == typical
-            for answer, typical in typical_answers
+            for label, answer, typical in typical_answers
+            if label not in hidden_questions
         )
 
         if all_typical:
@@ -2482,6 +2689,49 @@ if screen_button:
                 ),
 
                 "parent_comment": get_parent_comment([]),
+
+                "disclaimer": (
+                    "This tool provides screening support "
+                    "only and does not provide a medical "
+                    "diagnosis."
+                )
+            }
+
+
+        # =================================================
+        # VERY YOUNG CHILDREN (ADDED)
+        # Below MODEL_MIN_AGE_MONTHS the model result is not
+        # used, because the model has not learned typical
+        # development of babies. Guidance is given instead.
+        # =================================================
+
+        if age_total_months < MODEL_MIN_AGE_MONTHS:
+
+            screening_result = {
+
+                "result": (
+                    "No screening impression is given for a "
+                    "very young child"
+                ),
+
+                "identified": [],
+
+                "interventions": get_interventions([]),
+
+                "guidance": (
+                    "Babies grow and change very quickly, so this "
+                    "tool does not give a screening impression at "
+                    "this age. Please keep monitoring the child's "
+                    "development and attend the usual child health "
+                    "clinic visits."
+                ),
+
+                "parent_comment": (
+                    "If you have any concern about the child's "
+                    "movement, feeding, hearing, seeing or "
+                    "development, please visit a health centre or "
+                    "therapy centre for assessment and advice."
+                ),
 
                 "disclaimer": (
                     "This tool provides screening support "
