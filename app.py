@@ -1304,6 +1304,19 @@ st.header(
 
 
 # ---------------------------------------------------------
+# CHILD'S NAME (ADDED)
+# Not used by the model. It is shown in the result and sent
+# to the centre only if the parent agrees to follow-up.
+# ---------------------------------------------------------
+
+child_name = st.text_input(
+    "Child's name",
+    placeholder="Enter the child's name",
+    key="child_name"
+)
+
+
+# ---------------------------------------------------------
 # DATE OF BIRTH
 # ---------------------------------------------------------
 
@@ -2287,8 +2300,9 @@ st.write(
 
 share_contact = st.checkbox(
     "I agree that Furaha Therapy and Care Centre may contact me, "
-    "and I agree to share my name, phone number and the "
-    "information I entered about my child with the centre.",
+    "and I agree to share my name, phone number, my child's "
+    "name and the information I entered about my child with "
+    "the centre.",
     key="share_contact"
 )
 
@@ -2323,15 +2337,16 @@ if share_contact:
         )
     )
 
-    if parent_name.strip() and phone_is_valid:
+    if parent_name.strip() and phone_is_valid and child_name.strip():
 
         contact_ready = True
 
     else:
 
         st.caption(
-            "Please enter your name and a valid phone number "
-            "so that the centre can reach you."
+            "Please enter your name, a valid phone number and "
+            "your child's name (in Child Information) so that "
+            "the centre can reach you."
         )
 
     st.caption(
@@ -3042,6 +3057,12 @@ if screen_button:
                 .replace("\n", " ")
             )
 
+            clean_child_name = (
+                child_name.strip()
+                .replace("\r", " ")
+                .replace("\n", " ")
+            )
+
             email_text = "\n".join([
 
                 "NEW CHILD SCREENING - PLEASE FOLLOW UP",
@@ -3052,6 +3073,7 @@ if screen_button:
                 f"  Phone / WhatsApp: {parent_phone.strip()}",
                 "",
                 "CHILD",
+                f"  Name: {clean_child_name}",
                 f"  Date of birth: {dob}",
                 f"  Age: {format_age(age_years, age_months)}",
                 f"  County: {county}",
@@ -3107,6 +3129,13 @@ if screen_button:
         st.header(
             "Screening Result"
         )
+
+
+        if child_name.strip():
+
+            st.write(
+                f"**Child's name:** {child_name.strip()}"
+            )
 
 
         # =================================================
@@ -3428,8 +3457,9 @@ if screen_button:
         elif contact_share_status == "incomplete":
 
             st.warning(
-                "Your details were not shared because the name "
-                "or phone number was missing or not valid."
+                "Your details were not shared because your name, "
+                "your child's name or your phone number was "
+                "missing or not valid."
             )
 
 
