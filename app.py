@@ -2198,6 +2198,9 @@ from datetime import datetime, timedelta, timezone
 CENTRE_PHONE = "+254 727 077844"
 
 
+last_email_error = {"text": ""}
+
+
 def send_follow_up_email(subject, text):
 
     try:
@@ -2206,11 +2209,25 @@ def send_follow_up_email(subject, text):
             st.secrets["email"]
         )
 
+        sender = str(
+            email_settings["sender"]
+        ).strip()
+
+        receiver = str(
+            email_settings["receiver"]
+        ).strip()
+
+        # Google shows app passwords in groups with spaces.
+        # The spaces are removed here.
+        app_password = str(
+            email_settings["app_password"]
+        ).replace(" ", "").strip()
+
         message = EmailMessage()
 
         message["Subject"] = subject
-        message["From"] = email_settings["sender"]
-        message["To"] = email_settings["receiver"]
+        message["From"] = sender
+        message["To"] = receiver
 
         message.set_content(
             text
@@ -2223,8 +2240,8 @@ def send_follow_up_email(subject, text):
         ) as server:
 
             server.login(
-                email_settings["sender"],
-                email_settings["app_password"]
+                sender,
+                app_password
             )
 
             server.send_message(
@@ -2233,9 +2250,29 @@ def send_follow_up_email(subject, text):
 
         return True
 
-    except Exception:
+    except KeyError as missing_setting:
 
-        return False
+        last_email_error["text"] = (
+            f"A setting is missing in Secrets: {missing_setting}. "
+            "Secrets must have [email] with sender, "
+            "app_password and receiver."
+        )
+
+    except smtplib.SMTPAuthenticationError:
+
+        last_email_error["text"] = (
+            "Gmail refused the login. Use a Google App Password "
+            "(not the normal Gmail password) and check that "
+            "2-Step Verification is on."
+        )
+
+    except Exception as error:
+
+        last_email_error["text"] = (
+            f"{type(error).__name__}: {error}"
+        )
+
+    return False
 
 
 st.header(
@@ -3368,6 +3405,25 @@ if screen_button:
                 "Please call the centre on "
                 f"{CENTRE_PHONE}."
             )
+
+            # Shown only when debug = true is set in Secrets
+            # (for the person managing the app, not for parents)
+            try:
+
+                show_email_debug = bool(
+                    st.secrets["email"].get("debug", False)
+                )
+
+            except Exception:
+
+                show_email_debug = False
+
+            if show_email_debug:
+
+                st.error(
+                    "Admin message (only shown when debug = true): "
+                    + (last_email_error["text"] or "Unknown problem")
+                )
 
         elif contact_share_status == "incomplete":
 
