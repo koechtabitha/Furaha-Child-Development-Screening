@@ -2179,6 +2179,132 @@ if has_problems:
 
 
 # =========================================================
+# CONTACT FOR FOLLOW-UP (ADDED)
+# =========================================================
+#
+# This part is optional. The parent or caregiver must tick
+# the box to agree. Only then are the name and phone number
+# asked for, and only then is the information sent to the
+# centre by email after screening.
+#
+# The email settings are NOT written in this file. They are
+# kept in Streamlit "Secrets" (see the setup steps).
+# =========================================================
+
+import smtplib
+from email.message import EmailMessage
+from datetime import datetime, timedelta, timezone
+
+CENTRE_PHONE = "+254 727 077844"
+
+
+def send_follow_up_email(subject, text):
+
+    try:
+
+        email_settings = dict(
+            st.secrets["email"]
+        )
+
+        message = EmailMessage()
+
+        message["Subject"] = subject
+        message["From"] = email_settings["sender"]
+        message["To"] = email_settings["receiver"]
+
+        message.set_content(
+            text
+        )
+
+        with smtplib.SMTP_SSL(
+            email_settings.get("smtp_host", "smtp.gmail.com"),
+            int(email_settings.get("smtp_port", 465)),
+            timeout=20
+        ) as server:
+
+            server.login(
+                email_settings["sender"],
+                email_settings["app_password"]
+            )
+
+            server.send_message(
+                message
+            )
+
+        return True
+
+    except Exception:
+
+        return False
+
+
+st.header(
+    "Contact for Follow-up"
+)
+
+st.write(
+    "This part is optional. If you would like the centre to "
+    "call you to hear more about your child and to offer "
+    "support, please agree below."
+)
+
+share_contact = st.checkbox(
+    "I agree that Furaha Therapy and Care Centre may contact me, "
+    "and I agree to share my name, phone number and the "
+    "information I entered about my child with the centre.",
+    key="share_contact"
+)
+
+parent_name = ""
+parent_phone = ""
+contact_ready = False
+
+if share_contact:
+
+    parent_name = st.text_input(
+        "Parent / caregiver name",
+        placeholder="Enter your name",
+        key="parent_name"
+    )
+
+    parent_phone = st.text_input(
+        "Phone or WhatsApp number",
+        placeholder="For example 0712 345 678",
+        key="parent_phone"
+    )
+
+    clean_phone = re.sub(
+        r"[\s\-()]",
+        "",
+        parent_phone
+    )
+
+    phone_is_valid = bool(
+        re.fullmatch(
+            r"\+?\d{9,15}",
+            clean_phone
+        )
+    )
+
+    if parent_name.strip() and phone_is_valid:
+
+        contact_ready = True
+
+    else:
+
+        st.caption(
+            "Please enter your name and a valid phone number "
+            "so that the centre can reach you."
+        )
+
+    st.caption(
+        "Your details and the information about your child are "
+        "used only so that the centre can follow up with you. "
+        "They are not shared with anyone else."
+    )
+
+
+# =========================================================
 # SCREENING BUTTON
 # =========================================================
 
@@ -2828,6 +2954,114 @@ if screen_button:
 
 
         # =================================================
+        # SEND THE INFORMATION FOR FOLLOW-UP (ADDED)
+        # Only if the parent or caregiver agreed and gave a
+        # valid name and phone number.
+        # =================================================
+
+        contact_share_status = "not requested"
+
+        if share_contact and contact_ready:
+
+            nairobi_time = datetime.now(
+                timezone(timedelta(hours=3))
+            ).strftime("%d %b %Y, %H:%M")
+
+            answer_lines = []
+
+            for label, answer, typical in typical_answers:
+
+                if label in hidden_questions:
+
+                    answer_lines.append(
+                        f"  - {label}: not asked (age)"
+                    )
+
+                else:
+
+                    answer_lines.append(
+                        f"  - {label}: {answer}"
+                    )
+
+            problem_names_for_email = [
+                PROBLEM_NAMES[key]
+                for key in selected_problem_keys
+            ]
+
+            if other_problem_text.strip():
+
+                problem_names_for_email.append(
+                    f"Other: {other_problem_text.strip()}"
+                )
+
+            impression_names_for_email = [
+                PROBLEM_IMPRESSION_NAMES.get(name, name)
+                for name in screening_result["identified"]
+            ]
+
+            clean_parent_name = (
+                parent_name.strip()
+                .replace("\r", " ")
+                .replace("\n", " ")
+            )
+
+            email_text = "\n".join([
+
+                "NEW CHILD SCREENING - PLEASE FOLLOW UP",
+                f"Date and time (Kenya): {nairobi_time}",
+                "",
+                "PARENT / CAREGIVER",
+                f"  Name: {clean_parent_name}",
+                f"  Phone / WhatsApp: {parent_phone.strip()}",
+                "",
+                "CHILD",
+                f"  Date of birth: {dob}",
+                f"  Age: {format_age(age_years, age_months)}",
+                f"  County: {county}",
+                f"  Sub-county: {subcounty.strip()}",
+                "",
+                "ANSWERS",
+                *answer_lines,
+                "",
+                "PROBLEMS IDENTIFIED BY THE PARENT",
+                "  " + (
+                    "; ".join(problem_names_for_email)
+                    if problem_names_for_email
+                    else "None"
+                ),
+                "",
+                "SCREENING RESULT",
+                f"  {screening_result['result']}",
+                "  Impressions: " + (
+                    ", ".join(impression_names_for_email)
+                    if impression_names_for_email
+                    else "None"
+                ),
+                f"  Guidance: {screening_result['guidance']}",
+                "",
+                "This is a screening result only and not a diagnosis."
+            ])
+
+            with st.spinner(
+                "Sharing your details with the centre..."
+            ):
+
+                email_sent = send_follow_up_email(
+                    f"Furaha screening follow-up: "
+                    f"{clean_parent_name} ({county})",
+                    email_text
+                )
+
+            contact_share_status = (
+                "sent" if email_sent else "failed"
+            )
+
+        elif share_contact:
+
+            contact_share_status = "incomplete"
+
+
+        # =================================================
         # DISPLAY SCREENING RESULT
         # =================================================
 
@@ -3115,6 +3349,32 @@ if screen_button:
         st.info(
             screening_result["disclaimer"]
         )
+
+        # =================================================
+        # FOLLOW-UP MESSAGE FOR THE PARENT (ADDED)
+        # =================================================
+
+        if contact_share_status == "sent":
+
+            st.success(
+                "Thank you. Your details have been shared with "
+                "the centre, and someone will contact you."
+            )
+
+        elif contact_share_status == "failed":
+
+            st.warning(
+                "We could not share your details just now. "
+                "Please call the centre on "
+                f"{CENTRE_PHONE}."
+            )
+
+        elif contact_share_status == "incomplete":
+
+            st.warning(
+                "Your details were not shared because the name "
+                "or phone number was missing or not valid."
+            )
 
 
 # =========================================================
