@@ -589,17 +589,11 @@ def get_parent_comment(identified):
 THERAPY_CENTRES = {
 
     "Baringo": [],
-
     "Bomet": [],
-
     "Bungoma": [],
-
     "Busia": [],
-
     "Elgeyo-Marakwet": [],
-
     "Embu": [],
-
     "Garissa": [],
 
     "Homa Bay": [
@@ -652,15 +646,10 @@ THERAPY_CENTRES = {
     ],
 
     "Kakamega": [],
-
     "Kericho": [],
-
     "Kiambu": [],
-
     "Kilifi": [],
-
     "Kirinyaga": [],
-
     "Kisii": [],
 
     "Kisumu": [
@@ -680,11 +669,8 @@ THERAPY_CENTRES = {
     ],
 
     "Kitui": [],
-
     "Kwale": [],
-
     "Laikipia": [],
-
     "Lamu": [],
 
     "Machakos": [
@@ -705,9 +691,7 @@ THERAPY_CENTRES = {
     ],
 
     "Makueni": [],
-
     "Mandera": [],
-
     "Marsabit": [],
 
     "Meru": [
@@ -907,13 +891,9 @@ THERAPY_CENTRES = {
     ],
 
     "Nakuru": [],
-
     "Nandi": [],
-
     "Narok": [],
-
     "Nyamira": [],
-
     "Nyandarua": [],
 
     "Nyeri": [
@@ -946,25 +926,15 @@ THERAPY_CENTRES = {
     ],
 
     "Samburu": [],
-
     "Siaya": [],
-
     "Taita Taveta": [],
-
     "Tana River": [],
-
     "Tharaka-Nithi": [],
-
     "Trans Nzoia": [],
-
     "Turkana": [],
-
     "Uasin Gishu": [],
-
     "Vihiga": [],
-
     "Wajir": [],
-
     "West Pokot": []
 }
 
@@ -1452,7 +1422,8 @@ def adl_question(label):
             "Not achieved",
             "Partly achieved",
             "Achieved"
-        ]
+        ],
+        key=f"adl_{label}"
     )
 
 
@@ -1528,7 +1499,8 @@ def gross_question(label, options):
 
     return st.selectbox(
         label,
-        ["Select"] + options
+        ["Select"] + options,
+        key=f"gross_{label}"
     )
 
 
@@ -1813,7 +1785,7 @@ caption_if_shown(
 
 
 # =========================================================
-# 6. PROBLEMS IDENTIFIED
+# PROBLEMS IDENTIFIED
 # =========================================================
 
 PROBLEM_LIST = [
@@ -2411,15 +2383,20 @@ st.divider()
 
 
 # IMPORTANT:
-# st.empty() gives us a placeholder that can be visually
-# replaced by the green "Screening child... Please wait"
-# message while the model is running.
+# There is ONLY ONE Screen Child button in this app.
+# When clicked, this same placeholder is replaced with
+# the green loading message.
+#
+# DO NOT CREATE ANOTHER Screen Child BUTTON LATER.
+# Creating a second button in the same placeholder causes
+# StreamlitDuplicateElementId.
 
 screen_button_placeholder = st.empty()
 
 
 screen_button = screen_button_placeholder.button(
     "Screen Child",
+    key="screen_child_button",
     type="primary",
     use_container_width=True
 )
@@ -2434,8 +2411,6 @@ if screen_button:
     # -----------------------------------------------------
     # CHECK ALL REQUIRED FIELDS
     # -----------------------------------------------------
-    # Tell the parent/caregiver exactly what still needs
-    # to be completed before the screening can run.
 
     missing_sections = {
         "Child Information": [],
@@ -2468,9 +2443,6 @@ if screen_button:
     # -----------------------------------------------------
     # ASSESSMENT QUESTIONS
     # -----------------------------------------------------
-    # Only questions appropriate for the child's age are
-    # required. Questions hidden because of age are not
-    # reported as missing.
 
     assessment_questions = [
 
@@ -2644,8 +2616,13 @@ if screen_button:
     else:
 
         # -------------------------------------------------
-        # CHANGE THE GREEN BUTTON TO LOADING STATE
+        # CHANGE THE BUTTON TO LOADING STATE
         # -------------------------------------------------
+        #
+        # IMPORTANT:
+        # We replace the existing button.
+        # We DO NOT create another button afterward.
+        # This prevents StreamlitDuplicateElementId.
 
         screen_button_placeholder.markdown(
             """
@@ -3011,11 +2988,6 @@ if screen_button:
         # =================================================
 
         try:
-
-            # IMPORTANT:
-            # There is NO st.spinner() here.
-            # The loading message is already displayed
-            # inside the green button above.
 
             screening_result = screen_child(
                 child_data
@@ -3423,16 +3395,15 @@ if screen_button:
         # =================================================
         # DISPLAY SCREENING RESULT
         # =================================================
+        #
+        # IMPORTANT:
+        # DO NOT CREATE ANOTHER "Screen Child" BUTTON HERE.
+        #
+        # The original button has already been replaced by
+        # the loading message above. Creating another button
+        # here caused StreamlitDuplicateElementId.
+        #
 
-        # Restore the green screening button after screening.
-        # The loading message disappears, while the green
-        # button remains visible in the same position.
-        screen_button_placeholder.button(
-            "Screen Child",
-            type="primary",
-            use_container_width=True,
-            disabled=True
-        )
 
         st.divider()
 
