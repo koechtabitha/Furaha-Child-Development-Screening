@@ -2786,7 +2786,7 @@ if screen_button:
 
         try:
 
-    with st.spinner("🔄 Screening child... Please wait"):
+           with st.spinner("🔄 Screening child... Please wait"):
 
         screening_result = screen_child(
             child_data
