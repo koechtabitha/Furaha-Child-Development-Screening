@@ -2432,53 +2432,213 @@ screen_button = screen_button_placeholder.button(
 if screen_button:
 
     # -----------------------------------------------------
-    # CHECK ALL FIELDS
+    # CHECK ALL REQUIRED FIELDS
+    # -----------------------------------------------------
+    # Tell the parent/caregiver exactly what still needs
+    # to be completed before the screening can run.
+
+    missing_sections = {
+        "Child Information": [],
+        "Child Residence": [],
+        "Activities of Daily Living": [],
+        "Gross Motor Skills": [],
+        "Fine Motor Skills": [],
+        "Sensory Skills": []
+    }
+
+
+    # -----------------------------------------------------
+    # CHILD RESIDENCE
     # -----------------------------------------------------
 
-    selections = [
+    if county == "Select County":
+
+        missing_sections["Child Residence"].append(
+            "County of Residence"
+        )
+
+
+    if not subcounty.strip():
+
+        missing_sections["Child Residence"].append(
+            "Sub-county of Residence"
+        )
+
+
+    # -----------------------------------------------------
+    # ASSESSMENT QUESTIONS
+    # -----------------------------------------------------
+    # Only questions appropriate for the child's age are
+    # required. Questions hidden because of age are not
+    # reported as missing.
+
+    assessment_questions = [
 
         # ADLs
-        feeding,
-        toileting,
-        dressing,
-        grooming,
+        (
+            "Activities of Daily Living",
+            "Feeding",
+            feeding
+        ),
+        (
+            "Activities of Daily Living",
+            "Toileting",
+            toileting
+        ),
+        (
+            "Activities of Daily Living",
+            "Dressing",
+            dressing
+        ),
+        (
+            "Activities of Daily Living",
+            "Grooming",
+            grooming
+        ),
 
         # Gross motor
-        head_control,
-        rolling,
-        trunk_stability,
-        sitting,
-        crawling,
-        standing,
-        walking,
+        (
+            "Gross Motor Skills",
+            "Head control",
+            head_control
+        ),
+        (
+            "Gross Motor Skills",
+            "Rolling over",
+            rolling
+        ),
+        (
+            "Gross Motor Skills",
+            "Trunk stability",
+            trunk_stability
+        ),
+        (
+            "Gross Motor Skills",
+            "Sitting",
+            sitting
+        ),
+        (
+            "Gross Motor Skills",
+            "Crawling",
+            crawling
+        ),
+        (
+            "Gross Motor Skills",
+            "Standing",
+            standing
+        ),
+        (
+            "Gross Motor Skills",
+            "Walking",
+            walking
+        ),
 
         # Fine motor
-        eye_tracking,
-        eye_hand,
-        bilateral,
-        grasp,
-        manipulation,
-        release,
+        (
+            "Fine Motor Skills",
+            "Eye tracking",
+            eye_tracking
+        ),
+        (
+            "Fine Motor Skills",
+            "Eye-hand coordination",
+            eye_hand
+        ),
+        (
+            "Fine Motor Skills",
+            "Bilateral hand use",
+            bilateral
+        ),
+        (
+            "Fine Motor Skills",
+            "Grasp",
+            grasp
+        ),
+        (
+            "Fine Motor Skills",
+            "Manipulation",
+            manipulation
+        ),
+        (
+            "Fine Motor Skills",
+            "Release",
+            release
+        ),
 
         # Sensory
-        auditory,
-        vestibular,
-        visual,
-        tactile,
-        proprioception
+        (
+            "Sensory Skills",
+            "Auditory response",
+            auditory
+        ),
+        (
+            "Sensory Skills",
+            "Visual response",
+            visual
+        ),
+        (
+            "Sensory Skills",
+            "Tactile response",
+            tactile
+        ),
+        (
+            "Sensory Skills",
+            "Vestibular response",
+            vestibular
+        ),
+        (
+            "Sensory Skills",
+            "Proprioception",
+            proprioception
+        )
     ]
 
 
-    if (
-        "Select" in selections
-        or county == "Select County"
-        or not subcounty.strip()
-    ):
+    for section_name, question_name, answer in assessment_questions:
 
-        st.warning(
-            "Please complete the child's county, "
-            "sub-county and all assessment questions "
-            "before screening."
+        if question_applies(question_name) and answer == "Select":
+
+            missing_sections[section_name].append(
+                question_name
+            )
+
+
+    # -----------------------------------------------------
+    # DISPLAY EXACTLY WHAT IS MISSING
+    # -----------------------------------------------------
+
+    missing_sections = {
+        section: questions
+        for section, questions in missing_sections.items()
+        if questions
+    }
+
+
+    if missing_sections:
+
+        st.error(
+            "Please complete the following required information "
+            "before screening:"
+        )
+
+
+        for section_name, questions in missing_sections.items():
+
+            st.markdown(
+                f"**{section_name}**"
+            )
+
+            for question_name in questions:
+
+                st.write(
+                    f"• {question_name}"
+                )
+
+
+        st.info(
+            "Please go back to the sections listed above, "
+            "select an answer for every item, and then click "
+            "'Screen Child' again."
         )
 
     else:
@@ -3263,6 +3423,10 @@ if screen_button:
         # =================================================
         # DISPLAY SCREENING RESULT
         # =================================================
+
+        # Remove the "Screening child... Please wait" message
+        # before displaying the final screening results.
+        screen_button_placeholder.empty()
 
         st.divider()
 
