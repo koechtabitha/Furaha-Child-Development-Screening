@@ -1,8 +1,15 @@
 import os
-import streamlit as st
+import re
+import smtplib
+from email.message import EmailMessage
+from datetime import date, datetime, timedelta, timezone
+
+import numpy as np
 import pandas as pd
 import joblib
-from datetime import date
+import streamlit as st
+
+
 # =========================================================
 # PAGE SETTINGS
 # =========================================================
@@ -15,11 +22,7 @@ st.set_page_config(
 
 
 # =========================================================
-# FURAHA DESIGN (COLOURS AND INTERFACE ONLY)
-# This block only changes how the app looks.
-# It does not change any screening logic below.
-# Colours are taken from the Furaha logo:
-# green (ring), yellow (sun), black (tree) and white
+# FURAHA DESIGN
 # =========================================================
 
 st.markdown("""
@@ -36,7 +39,10 @@ st.markdown("""
 }
 
 /* ---------- Page and main column ---------- */
-.stApp { background: #F1F5EC; color: #1A1614; }
+.stApp {
+    background: #F1F5EC;
+    color: #1A1614;
+}
 
 .block-container {
     max-width: 1000px;
@@ -50,19 +56,33 @@ st.markdown("""
 }
 
 /* ---------- Fonts ---------- */
-.stApp p, .stApp li, .stApp label, .stApp input,
-.stApp button, .stApp div[data-baseweb="select"] {
+.stApp p,
+.stApp li,
+.stApp label,
+.stApp input,
+.stApp button,
+.stApp div[data-baseweb="select"] {
     font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
 }
-.stApp h1, .stApp h2, .stApp h3 {
+
+.stApp h1,
+.stApp h2,
+.stApp h3 {
     font-family: 'Outfit', 'Segoe UI', Arial, sans-serif;
 }
 
 /* ---------- Hide Streamlit menu and footer ---------- */
-#MainMenu, footer { visibility: hidden; }
-header[data-testid="stHeader"] { background: #1A1614; border-bottom: 3px solid #F6DF4F; }
+#MainMenu,
+footer {
+    visibility: hidden;
+}
 
-/* ---------- Title becomes the black banner ---------- */
+header[data-testid="stHeader"] {
+    background: #1A1614;
+    border-bottom: 3px solid #F6DF4F;
+}
+
+/* ---------- Title ---------- */
 .stApp h1 {
     background: #1A1614;
     color: #FFF !important;
@@ -72,9 +92,15 @@ header[data-testid="stHeader"] { background: #1A1614; border-bottom: 3px solid #
     padding: 34px 36px 30px 36px !important;
     border-radius: 6px;
     border-bottom: 8px solid;
-    border-image: linear-gradient(to right, #3A8A30 0 68%, #F6DF4F 68% 88%, #1A1614 88%) 1;
+    border-image: linear-gradient(
+        to right,
+        #3A8A30 0 68%,
+        #F6DF4F 68% 88%,
+        #1A1614 88%
+    ) 1;
     margin-bottom: 14px;
 }
+
 .stApp h1::before {
     content: "Kenya";
     display: block;
@@ -96,6 +122,7 @@ header[data-testid="stHeader"] { background: #1A1614; border-bottom: 3px solid #
     padding: 12px 18px !important;
     margin-top: 1.6rem;
 }
+
 .stApp h3 {
     color: #2C6B24;
     font-size: 21px;
@@ -103,11 +130,24 @@ header[data-testid="stHeader"] { background: #1A1614; border-bottom: 3px solid #
 }
 
 /* ---------- Text ---------- */
-.stApp p, .stApp li { line-height: 1.65; }
-[data-testid="stCaptionContainer"] { color: #666; margin-top: -8px; margin-bottom: 10px; }
-label, [data-testid="stWidgetLabel"] p { color: #1A1614 !important; font-weight: 700; }
+.stApp p,
+.stApp li {
+    line-height: 1.65;
+}
 
-/* ---------- Boxes (info, success, warning) ---------- */
+[data-testid="stCaptionContainer"] {
+    color: #666;
+    margin-top: -8px;
+    margin-bottom: 10px;
+}
+
+label,
+[data-testid="stWidgetLabel"] p {
+    color: #1A1614 !important;
+    font-weight: 700;
+}
+
+/* ---------- Boxes ---------- */
 [data-testid="stAlert"] {
     background: #FFFFFF !important;
     border: 1px solid #E3E3E3;
@@ -115,35 +155,45 @@ label, [data-testid="stWidgetLabel"] p { color: #1A1614 !important; font-weight:
     border-radius: 6px;
     color: #1A1614;
 }
-[data-testid="stAlert"] p { color: #1A1614 !important; }
+
+[data-testid="stAlert"] p {
+    color: #1A1614 !important;
+}
+
 [data-testid="stAlert"]:has([data-testid="stAlertContentInfo"]) {
     border-left-color: #F6DF4F;
     background: #FFFDF0 !important;
 }
+
 [data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) {
     border-left-color: #3A8A30;
     background: #EAF4E6 !important;
 }
+
 [data-testid="stAlert"]:has([data-testid="stAlertContentWarning"]) {
     border-left-color: #E0B800;
     background: #FFF8CC !important;
 }
 
 /* ---------- Inputs ---------- */
-.stTextInput input, .stDateInput input,
+.stTextInput input,
+.stDateInput input,
 div[data-baseweb="select"] > div {
     border-radius: 6px !important;
     background: #FAFAFA !important;
     color: #1A1614 !important;
 }
+
 div[data-baseweb="select"] > div:focus-within,
-.stTextInput input:focus, .stDateInput input:focus {
+.stTextInput input:focus,
+.stDateInput input:focus {
     border-color: #3A8A30 !important;
     box-shadow: 0 0 0 1px #3A8A30 !important;
 }
 
 /* ---------- Main button ---------- */
-button[kind="primary"], button[data-testid="stBaseButton-primary"] {
+button[kind="primary"],
+button[data-testid="stBaseButton-primary"] {
     background: #3A8A30 !important;
     color: #FFF !important;
     border: none !important;
@@ -155,16 +205,44 @@ button[kind="primary"], button[data-testid="stBaseButton-primary"] {
     font-family: 'Outfit', sans-serif !important;
     transition: background .2s;
 }
-button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {
+
+button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover {
     background: #2C6B24 !important;
 }
-button[kind="primary"]:focus-visible, button[data-testid="stBaseButton-primary"]:focus-visible {
+
+button[kind="primary"]:focus-visible,
+button[data-testid="stBaseButton-primary"]:focus-visible {
     outline: 3px solid #F6DF4F !important;
     outline-offset: 2px;
 }
 
+/* ---------- Screening loading button ---------- */
+.screening-loading-button {
+    width: 100%;
+    background: #3A8A30;
+    color: #FFFFFF;
+    border: none;
+    border-bottom: 4px solid #F6DF4F;
+    border-radius: 6px;
+    padding: 0.85rem 1.5rem;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Outfit', 'Segoe UI', sans-serif;
+    text-align: center;
+    box-sizing: border-box;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* ---------- Divider ---------- */
-hr { border: none !important; border-top: 2px solid #EEE !important; margin: 1.6rem 0 !important; }
+hr {
+    border: none !important;
+    border-top: 2px solid #EEE !important;
+    margin: 1.6rem 0 !important;
+}
 
 /* ---------- Footer ---------- */
 .furaha-footer {
@@ -179,13 +257,27 @@ hr { border: none !important; border-top: 2px solid #EEE !important; margin: 1.6
     border-top: 5px solid #F6DF4F;
     border-bottom: 5px solid #3A8A30;
 }
-.furaha-footer strong { color: #F6DF4F; font-size: 15px; }
+
+.furaha-footer strong {
+    color: #F6DF4F;
+    font-size: 15px;
+}
 
 /* ---------- Phones ---------- */
 @media (max-width: 640px) {
-    .block-container { padding: 1.2rem 1rem 2rem 1rem !important; }
-    .stApp h1 { font-size: 26px; padding: 24px 20px 22px 20px !important; }
-    .stApp h2 { font-size: 21px; }
+
+    .block-container {
+        padding: 1.2rem 1rem 2rem 1rem !important;
+    }
+
+    .stApp h1 {
+        font-size: 26px;
+        padding: 24px 20px 22px 20px !important;
+    }
+
+    .stApp h2 {
+        font-size: 21px;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -493,69 +585,22 @@ def get_parent_comment(identified):
 # =========================================================
 # KENYA THERAPY / REHABILITATION CENTRES
 # =========================================================
-#
-# These records are referral information only.
-# They are NOT used by the ML model.
-#
-# Parents should contact the facility before travelling
-# to confirm current services, appointment requirements,
-# clinic days and telephone numbers.
-# =========================================================
 
 THERAPY_CENTRES = {
 
-    # -----------------------------------------------------
-    # BARINGO
-    # -----------------------------------------------------
-
     "Baringo": [],
-
-
-    # -----------------------------------------------------
-    # BOMET
-    # -----------------------------------------------------
 
     "Bomet": [],
 
-
-    # -----------------------------------------------------
-    # BUNGOMA
-    # -----------------------------------------------------
-
     "Bungoma": [],
-
-
-    # -----------------------------------------------------
-    # BUSIA
-    # -----------------------------------------------------
 
     "Busia": [],
 
-
-    # -----------------------------------------------------
-    # ELGEYO-MARAKWET
-    # -----------------------------------------------------
-
     "Elgeyo-Marakwet": [],
-
-
-    # -----------------------------------------------------
-    # EMBU
-    # -----------------------------------------------------
 
     "Embu": [],
 
-
-    # -----------------------------------------------------
-    # GARISSA
-    # -----------------------------------------------------
-
     "Garissa": [],
-
-
-    # -----------------------------------------------------
-    # HOMA BAY
-    # -----------------------------------------------------
 
     "Homa Bay": [
 
@@ -574,17 +619,7 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # ISIOLO
-    # -----------------------------------------------------
-
     "Isiolo": [],
-
-
-    # -----------------------------------------------------
-    # KAJIADO
-    # -----------------------------------------------------
 
     "Kajiado": [
 
@@ -616,52 +651,17 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # KAKAMEGA
-    # -----------------------------------------------------
-
     "Kakamega": [],
-
-
-    # -----------------------------------------------------
-    # KERICHO
-    # -----------------------------------------------------
 
     "Kericho": [],
 
-
-    # -----------------------------------------------------
-    # KIAMBU
-    # -----------------------------------------------------
-
     "Kiambu": [],
-
-
-    # -----------------------------------------------------
-    # KILIFI
-    # -----------------------------------------------------
 
     "Kilifi": [],
 
-
-    # -----------------------------------------------------
-    # KIRINYAGA
-    # -----------------------------------------------------
-
     "Kirinyaga": [],
 
-
-    # -----------------------------------------------------
-    # KISII
-    # -----------------------------------------------------
-
     "Kisii": [],
-
-
-    # -----------------------------------------------------
-    # KISUMU
-    # -----------------------------------------------------
 
     "Kisumu": [
 
@@ -679,38 +679,13 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # KITUI
-    # -----------------------------------------------------
-
     "Kitui": [],
-
-
-    # -----------------------------------------------------
-    # KWALE
-    # -----------------------------------------------------
 
     "Kwale": [],
 
-
-    # -----------------------------------------------------
-    # LAIKIPIA
-    # -----------------------------------------------------
-
     "Laikipia": [],
 
-
-    # -----------------------------------------------------
-    # LAMU
-    # -----------------------------------------------------
-
     "Lamu": [],
-
-
-    # -----------------------------------------------------
-    # MACHAKOS
-    # -----------------------------------------------------
 
     "Machakos": [
 
@@ -729,31 +704,11 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # MAKUENI
-    # -----------------------------------------------------
-
     "Makueni": [],
-
-
-    # -----------------------------------------------------
-    # MANDERA
-    # -----------------------------------------------------
 
     "Mandera": [],
 
-
-    # -----------------------------------------------------
-    # MARSABIT
-    # -----------------------------------------------------
-
     "Marsabit": [],
-
-
-    # -----------------------------------------------------
-    # MERU
-    # -----------------------------------------------------
 
     "Meru": [
 
@@ -811,17 +766,7 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # MIGORI
-    # -----------------------------------------------------
-
     "Migori": [],
-
-
-    # -----------------------------------------------------
-    # MOMBASA
-    # -----------------------------------------------------
 
     "Mombasa": [
 
@@ -839,17 +784,7 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # MURANG'A
-    # -----------------------------------------------------
-
     "Murang'a": [],
-
-
-    # -----------------------------------------------------
-    # NAIROBI
-    # -----------------------------------------------------
 
     "Nairobi": [
 
@@ -971,45 +906,15 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # NAKURU
-    # -----------------------------------------------------
-
     "Nakuru": [],
-
-
-    # -----------------------------------------------------
-    # NANDI
-    # -----------------------------------------------------
 
     "Nandi": [],
 
-
-    # -----------------------------------------------------
-    # NAROK
-    # -----------------------------------------------------
-
     "Narok": [],
-
-
-    # -----------------------------------------------------
-    # NYAMIRA
-    # -----------------------------------------------------
 
     "Nyamira": [],
 
-
-    # -----------------------------------------------------
-    # NYANDARUA
-    # -----------------------------------------------------
-
     "Nyandarua": [],
-
-
-    # -----------------------------------------------------
-    # NYERI
-    # -----------------------------------------------------
 
     "Nyeri": [
 
@@ -1040,73 +945,25 @@ THERAPY_CENTRES = {
         }
     ],
 
-
-    # -----------------------------------------------------
-    # SAMBURU
-    # -----------------------------------------------------
-
     "Samburu": [],
 
-
-    # -----------------------------------------------------
-    # TAITA TAVETA
-    # -----------------------------------------------------
+    "Siaya": [],
 
     "Taita Taveta": [],
 
-
-    # -----------------------------------------------------
-    # TANA RIVER
-    # -----------------------------------------------------
-
     "Tana River": [],
-
-
-    # -----------------------------------------------------
-    # THARAKA-NITHI
-    # -----------------------------------------------------
 
     "Tharaka-Nithi": [],
 
-
-    # -----------------------------------------------------
-    # TRANS NZOIA
-    # -----------------------------------------------------
-
     "Trans Nzoia": [],
-
-
-    # -----------------------------------------------------
-    # TURKANA
-    # -----------------------------------------------------
 
     "Turkana": [],
 
-
-    # -----------------------------------------------------
-    # UASIN GISHU
-    # -----------------------------------------------------
-
     "Uasin Gishu": [],
-
-
-    # -----------------------------------------------------
-    # VIHIGA
-    # -----------------------------------------------------
 
     "Vihiga": [],
 
-
-    # -----------------------------------------------------
-    # WAJIR
-    # -----------------------------------------------------
-
     "Wajir": [],
-
-
-    # -----------------------------------------------------
-    # WEST POKOT
-    # -----------------------------------------------------
 
     "West Pokot": []
 }
@@ -1134,7 +991,6 @@ def screen_child(child_data):
         [child_data]
     )
 
-
     # -----------------------------------------------------
     # CREATE MISSINGNESS INDICATORS
     # -----------------------------------------------------
@@ -1154,7 +1010,6 @@ def screen_child(child_data):
                 .astype(int)
             )
 
-
     # -----------------------------------------------------
     # ARRANGE COLUMNS EXACTLY AS MODEL EXPECTS
     # -----------------------------------------------------
@@ -1164,7 +1019,6 @@ def screen_child(child_data):
         loaded_numeric_features
         + loaded_categorical_features
     )
-
 
     # -----------------------------------------------------
     # APPLY SAVED PREPROCESSING
@@ -1176,7 +1030,6 @@ def screen_child(child_data):
         )
     )
 
-
     # -----------------------------------------------------
     # MAKE PREDICTION
     # -----------------------------------------------------
@@ -1184,7 +1037,6 @@ def screen_child(child_data):
     predictions = loaded_model.predict(
         child_processed
     )[0]
-
 
     identified = []
 
@@ -1199,7 +1051,6 @@ def screen_child(child_data):
                 name
             )
 
-
     # -----------------------------------------------------
     # INTERVENTIONS
     # -----------------------------------------------------
@@ -1208,7 +1059,6 @@ def screen_child(child_data):
         identified
     )
 
-
     # -----------------------------------------------------
     # PARENT GUIDANCE
     # -----------------------------------------------------
@@ -1216,7 +1066,6 @@ def screen_child(child_data):
     parent_comment = get_parent_comment(
         identified
     )
-
 
     # -----------------------------------------------------
     # RESULT
@@ -1245,7 +1094,6 @@ def screen_child(child_data):
             "development as the child grows."
         )
 
-
     return {
 
         "result": result,
@@ -1267,12 +1115,15 @@ def screen_child(child_data):
 
 
 # =========================================================
-# FURAHA LOGO (DESIGN ONLY)
-# Put FURAHA_LOGO.jpeg in the same folder as this file
+# FURAHA LOGO
 # =========================================================
 
 if os.path.exists("FURAHA_LOGO.jpeg"):
-    st.image("FURAHA_LOGO.jpeg", width=150)
+
+    st.image(
+        "FURAHA_LOGO.jpeg",
+        width=150
+    )
 
 
 # =========================================================
@@ -1303,12 +1154,6 @@ st.header(
 )
 
 
-# ---------------------------------------------------------
-# CHILD'S NAME (ADDED)
-# Not used by the model. It is shown in the result and sent
-# to the centre only if the parent agrees to follow-up.
-# ---------------------------------------------------------
-
 child_name = st.text_input(
     "Child's name",
     placeholder="Enter the child's name",
@@ -1316,20 +1161,12 @@ child_name = st.text_input(
 )
 
 
-# ---------------------------------------------------------
-# DATE OF BIRTH
-# ---------------------------------------------------------
-
 dob = st.date_input(
     "Date of Birth",
     min_value=date(1990, 1, 1),
     max_value=date.today()
 )
 
-
-# ---------------------------------------------------------
-# CALCULATE AGE
-# ---------------------------------------------------------
 
 age_years, age_months = calculate_age(
     dob
@@ -1341,26 +1178,8 @@ st.success(
 
 
 # =========================================================
-# AGE-BASED QUESTIONS (ADDED)
-# Only questions that suit the child's age are shown.
-# Other questions appear as the child grows.
+# AGE-BASED QUESTIONS
 # =========================================================
-#
-# The numbers below are STARTING VALUES taken from commonly
-# used developmental milestones. They must be checked and
-# changed by the Furaha therapists.
-#
-# AGE_RULES: the age in months from which each question
-# is shown. A question that is not shown is sent to the
-# model as a missing value, not as "Not achieved".
-#
-# MODEL_MIN_AGE_MONTHS: below this age the app does not give
-# a screening impression from the model. In testing, typical
-# babies younger than 12 months were still flagged, because
-# the training data has no typical babies.
-# =========================================================
-
-import numpy as np
 
 age_total_months = age_years * 12 + age_months
 
@@ -1399,33 +1218,92 @@ AGE_RULES = {
     "Proprioception": 6
 }
 
-# Where each question goes in the model input
+
 QUESTION_MODEL_KEYS = {
 
-    "Feeding": ["ML_ADL_FeedingEating"],
-    "Toileting": ["ML_ADL_Toileting"],
-    "Dressing": ["ML_ADL_GroomingDressingSkills"],
-    "Grooming": ["ML_ADL_Grooming"],
+    "Feeding": [
+        "ML_ADL_FeedingEating"
+    ],
 
-    "Head control": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_HeadControl"],
-    "Rolling over": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_RollingOver"],
-    "Trunk stability": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_TrunkStablity"],
-    "Sitting": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Sitting"],
-    "Crawling": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Crawling"],
-    "Standing": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Standing"],
-    "Walking": ["OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Walking"],
+    "Toileting": [
+        "ML_ADL_Toileting"
+    ],
 
-    "Eye tracking": ["OccupationalPerformanceAreas_FineMotor_EyeTracking"],
-    "Eye-hand coordination": ["OccupationalPerformanceAreas_FineMotor_EyeHandCordination"],
-    "Bilateral hand use": ["OccupationalPerformanceAreas_FineMotor_BilateralHandUse"],
-    "Grasp": ["OccupationalPerformanceAreas_FineMotor_Grasp"],
-    "Manipulation": ["OccupationalPerformanceAreas_FineMotor_Manipulation"],
-    "Release": ["OccupationalPerformanceAreas_FineMotor_Release"],
+    "Dressing": [
+        "ML_ADL_GroomingDressingSkills"
+    ],
 
-    "Auditory response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Auditory"],
-    "Visual response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Visual"],
-    "Tactile response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Tactile"],
-    "Vestibular response": ["OccupationalPerformanceAreas_FineMotor_Sensory_Vestibular"],
+    "Grooming": [
+        "ML_ADL_Grooming"
+    ],
+
+    "Head control": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_HeadControl"
+    ],
+
+    "Rolling over": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_RollingOver"
+    ],
+
+    "Trunk stability": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_TrunkStablity"
+    ],
+
+    "Sitting": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Sitting"
+    ],
+
+    "Crawling": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Crawling"
+    ],
+
+    "Standing": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Standing"
+    ],
+
+    "Walking": [
+        "OccupationalPerformanceAreas_DevelopmentalComponents_GrossMotor_Walking"
+    ],
+
+    "Eye tracking": [
+        "OccupationalPerformanceAreas_FineMotor_EyeTracking"
+    ],
+
+    "Eye-hand coordination": [
+        "OccupationalPerformanceAreas_FineMotor_EyeHandCordination"
+    ],
+
+    "Bilateral hand use": [
+        "OccupationalPerformanceAreas_FineMotor_BilateralHandUse"
+    ],
+
+    "Grasp": [
+        "OccupationalPerformanceAreas_FineMotor_Grasp"
+    ],
+
+    "Manipulation": [
+        "OccupationalPerformanceAreas_FineMotor_Manipulation"
+    ],
+
+    "Release": [
+        "OccupationalPerformanceAreas_FineMotor_Release"
+    ],
+
+    "Auditory response": [
+        "OccupationalPerformanceAreas_FineMotor_Sensory_Auditory"
+    ],
+
+    "Visual response": [
+        "OccupationalPerformanceAreas_FineMotor_Sensory_Visual"
+    ],
+
+    "Tactile response": [
+        "OccupationalPerformanceAreas_FineMotor_Sensory_Tactile"
+    ],
+
+    "Vestibular response": [
+        "OccupationalPerformanceAreas_FineMotor_Sensory_Vestibular"
+    ],
 
     "Proprioception": [
         "OccupationalPerformanceAreas_FineMotor_Sensory_Proprioception",
@@ -1434,20 +1312,23 @@ QUESTION_MODEL_KEYS = {
     ]
 }
 
+
 hidden_questions = set()
 
-question_state = {"last_hidden": False}
+question_state = {
+    "last_hidden": False
+}
 
 
 def question_applies(label):
 
-    return age_total_months >= AGE_RULES.get(label, 0)
+    return age_total_months >= AGE_RULES.get(
+        label,
+        0
+    )
 
 
 def caption_if_shown(text):
-
-    # The short explanation under a question is shown
-    # only when the question itself is shown.
 
     if not question_state["last_hidden"]:
 
@@ -1575,11 +1456,6 @@ def adl_question(label):
     )
 
 
-# ---------------------------------------------------------
-# Show ADL questions only when they suit the child's age
-# (the original adl_question function above is kept)
-# ---------------------------------------------------------
-
 _shown_adl_question = adl_question
 
 
@@ -1599,8 +1475,6 @@ def adl_question(label):
         label
     )
 
-    # Placeholder only. It is replaced by a missing value
-    # before the model is used.
     return "Achieved"
 
 
@@ -1658,12 +1532,6 @@ def gross_question(label, options):
     )
 
 
-# ---------------------------------------------------------
-# Show gross motor, fine motor and sensory questions only
-# when they suit the child's age
-# (the original gross_question function above is kept)
-# ---------------------------------------------------------
-
 _shown_gross_question = gross_question
 
 
@@ -1684,8 +1552,6 @@ def gross_question(label, options):
         label
     )
 
-    # Placeholder only. It is replaced by a missing value
-    # before the model is used.
     return options[0]
 
 
@@ -1947,112 +1813,171 @@ caption_if_shown(
 
 
 # =========================================================
-# 6. PROBLEMS IDENTIFIED (ADDED)
-# =========================================================
-#
-# The list below was taken from the "OTProblemsIdentified"
-# column of the admissions data. Similar entries were joined
-# together so that each problem appears only once. No child
-# names or personal data are stored in this app.
-#
-# Each problem has a short, simple meaning for parents.
+# 6. PROBLEMS IDENTIFIED
 # =========================================================
 
-import re
-
-# (key, name shown to parent, simple meaning)
 PROBLEM_LIST = [
 
-    ("milestones", "Delayed milestones",
-     "The child is slow to learn skills like holding the head up, "
-     "sitting, crawling, standing or walking."),
+    (
+        "milestones",
+        "Delayed milestones",
+        "The child is slow to learn skills like holding the head up, "
+        "sitting, crawling, standing or walking."
+    ),
 
-    ("speech", "Speech delay or unclear speech",
-     "The child speaks late, says few words, or is hard to "
-     "understand for their age."),
+    (
+        "speech",
+        "Speech delay or unclear speech",
+        "The child speaks late, says few words, or is hard to "
+        "understand for their age."
+    ),
 
-    ("attention", "Poor attention",
-     "The child is easily distracted and cannot stay with one "
-     "activity for long."),
+    (
+        "attention",
+        "Poor attention",
+        "The child is easily distracted and cannot stay with one "
+        "activity for long."
+    ),
 
-    ("balance", "Poor balance or posture",
-     "The child is unsteady, falls easily, slumps, or finds it "
-     "hard to keep the body upright."),
+    (
+        "balance",
+        "Poor balance or posture",
+        "The child is unsteady, falls easily, slumps, or finds it "
+        "hard to keep the body upright."
+    ),
 
-    ("finemotor", "Poor hand and finger skills",
-     "The child finds it hard to hold a spoon, crayon or small "
-     "objects, or to use both hands together."),
+    (
+        "finemotor",
+        "Poor hand and finger skills",
+        "The child finds it hard to hold a spoon, crayon or small "
+        "objects, or to use both hands together."
+    ),
 
-    ("hyper", "Very active or restless",
-     "The child cannot sit still and is always moving, running "
-     "or climbing."),
+    (
+        "hyper",
+        "Very active or restless",
+        "The child cannot sit still and is always moving, running "
+        "or climbing."
+    ),
 
-    ("lowtone", "Floppy or weak body",
-     "The child's body feels loose or soft, and the child tires "
-     "easily."),
+    (
+        "lowtone",
+        "Floppy or weak body",
+        "The child's body feels loose or soft, and the child tires "
+        "easily."
+    ),
 
-    ("eye", "Poor eye contact",
-     "The child rarely looks at your face or eyes when you talk "
-     "or play."),
+    (
+        "eye",
+        "Poor eye contact",
+        "The child rarely looks at your face or eyes when you talk "
+        "or play."
+    ),
 
-    ("hightone", "Stiff body",
-     "The child's arms or legs feel tight or stiff and are hard "
-     "to move or bend."),
+    (
+        "hightone",
+        "Stiff body",
+        "The child's arms or legs feel tight or stiff and are hard "
+        "to move or bend."
+    ),
 
-    ("social", "Difficulty playing or mixing with others",
-     "The child does not play with, or respond to, other "
-     "children or people."),
+    (
+        "social",
+        "Difficulty playing or mixing with others",
+        "The child does not play with, or respond to, other "
+        "children or people."
+    ),
 
-    ("adl", "Needs a lot of help with daily tasks",
-     "The child needs more help than expected with eating, "
-     "dressing, toileting or washing."),
+    (
+        "adl",
+        "Needs a lot of help with daily tasks",
+        "The child needs more help than expected with eating, "
+        "dressing, toileting or washing."
+    ),
 
-    ("drool", "Drooling",
-     "Saliva often runs out of the mouth, more than expected "
-     "for the child's age."),
+    (
+        "drool",
+        "Drooling",
+        "Saliva often runs out of the mouth, more than expected "
+        "for the child's age."
+    ),
 
-    ("weak", "Weak arms or legs",
-     "The child's arms or legs seem weak, or one side is used "
-     "less than the other."),
+    (
+        "weak",
+        "Weak arms or legs",
+        "The child's arms or legs seem weak, or one side is used "
+        "less than the other."
+    ),
 
-    ("tantrum", "Frequent tantrums",
-     "Strong outbursts of crying, screaming or anger that are "
-     "hard to calm."),
+    (
+        "tantrum",
+        "Frequent tantrums",
+        "Strong outbursts of crying, screaming or anger that are "
+        "hard to calm."
+    ),
 
-    ("tactile", "Strong reaction to touch",
-     "The child dislikes certain clothes, textures, messy play "
-     "or being touched."),
+    (
+        "tactile",
+        "Strong reaction to touch",
+        "The child dislikes certain clothes, textures, messy play "
+        "or being touched."
+    ),
 
-    ("repetitive", "Repeated movements or sounds",
-     "The child repeats actions such as hand flapping, rocking, "
-     "spinning or head banging, or repeats words again and again."),
+    (
+        "repetitive",
+        "Repeated movements or sounds",
+        "The child repeats actions such as hand flapping, rocking, "
+        "spinning or repeats words again and again."
+    ),
 
-    ("tiptoe", "Walking on tiptoes",
-     "The child often walks on the toes instead of the whole foot."),
+    (
+        "tiptoe",
+        "Walking on tiptoes",
+        "The child often walks on the toes instead of the whole foot."
+    ),
 
-    ("impuls", "Acts without thinking",
-     "The child acts very quickly, interrupts, or finds it hard "
-     "to wait."),
+    (
+        "impuls",
+        "Acts without thinking",
+        "The child acts very quickly, interrupts, or finds it hard "
+        "to wait."
+    ),
 
-    ("regress", "Lost skills",
-     "The child could do something before, like say a word or "
-     "make a movement, but has stopped doing it."),
+    (
+        "regress",
+        "Lost skills",
+        "The child could do something before, like say a word or "
+        "make a movement, but has stopped doing it."
+    ),
 
-    ("feeding", "Feeding difficulty",
-     "The child has trouble chewing, swallowing or accepting "
-     "some foods."),
+    (
+        "feeding",
+        "Feeding difficulty",
+        "The child has trouble chewing, swallowing or accepting "
+        "some foods."
+    ),
 
-    ("sound", "Strong reaction to sounds",
-     "The child covers the ears, gets upset by noise, or does "
-     "not seem to respond to sounds."),
+    (
+        "sound",
+        "Strong reaction to sounds",
+        "The child covers the ears, gets upset by noise, or does "
+        "not seem to respond to sounds."
+    ),
 
-    ("sleep", "Poor sleep",
-     "The child has trouble falling asleep or staying asleep."),
+    (
+        "sleep",
+        "Poor sleep",
+        "The child has trouble falling asleep or staying asleep."
+    ),
 
-    ("fits", "Fits (convulsions)",
-     "Sudden shaking of the body, sometimes with loss of "
-     "awareness."),
+    (
+        "fits",
+        "Fits (convulsions)",
+        "Sudden shaking of the body, sometimes with loss of "
+        "awareness."
+    )
 ]
+
 
 PROBLEM_NAMES = {
     key: name
@@ -2060,32 +1985,76 @@ PROBLEM_NAMES = {
 }
 
 
-# Words used to recognise a problem typed in "Other problem"
 PROBLEM_KEYWORDS = {
 
-    "milestones": r"milestone|ddm|developmental delay|delayed (in )?walking|not (yet )?(sitting|crawling|walking|standing)|head control",
-    "speech": r"speech|speak|talk|words|language|articulat|non.?verbal|babbl",
-    "attention": r"attention|concentrat|distract|focus",
-    "balance": r"balance|postur|trunk|unsteady|falls|coordination",
-    "finemotor": r"fine motor|hand function|grasp|writing|holding",
-    "hyper": r"hyperactiv|restless",
-    "lowtone": r"low (muscle )?tone|floppy|hypotoni",
-    "eye": r"eye contact",
-    "hightone": r"high (muscle )?tone|stiff|spastic|hypertoni",
-    "social": r"social|interact|play with",
-    "adl": r"adl|potty|toilet|dressing|bathing|self.?care",
-    "drool": r"drool|drull|saliva",
-    "weak": r"weak",
-    "tantrum": r"tantrum|aggress|meltdown",
-    "tactile": r"tactile|touch|texture|defensive",
-    "repetitive": r"mannerism|stimming|flapping|rocking|head banging|echolalia|spinning",
-    "tiptoe": r"tip.?toe|toe walking",
-    "impuls": r"impulsiv",
-    "regress": r"regress|lost (a )?skill|stopped (talking|walking|speaking)",
-    "feeding": r"feeding|chew|swallow|picky",
-    "sound": r"auditory|noise|loud sound",
-    "sleep": r"sleep",
-    "fits": r"convuls|seizure|\bfits?\b|epilep"
+    "milestones":
+        r"milestone|ddm|developmental delay|delayed (in )?walking|not (yet )?(sitting|crawling|walking|standing)|head control",
+
+    "speech":
+        r"speech|speak|talk|words|language|articulat|non.?verbal|babbl",
+
+    "attention":
+        r"attention|concentrat|distract|focus",
+
+    "balance":
+        r"balance|postur|trunk|unsteady|falls|coordination",
+
+    "finemotor":
+        r"fine motor|hand function|grasp|writing|holding",
+
+    "hyper":
+        r"hyperactiv|restless",
+
+    "lowtone":
+        r"low (muscle )?tone|floppy|hypotoni",
+
+    "eye":
+        r"eye contact",
+
+    "hightone":
+        r"high (muscle )?tone|stiff|spastic|hypertoni",
+
+    "social":
+        r"social|interact|play with",
+
+    "adl":
+        r"adl|potty|toilet|dressing|bathing|self.?care",
+
+    "drool":
+        r"drool|drull|saliva",
+
+    "weak":
+        r"weak",
+
+    "tantrum":
+        r"tantrum|aggress|meltdown",
+
+    "tactile":
+        r"tactile|touch|texture|defensive",
+
+    "repetitive":
+        r"mannerism|stimming|flapping|rocking|head banging|echolalia|spinning",
+
+    "tiptoe":
+        r"tip.?toe|toe walking",
+
+    "impuls":
+        r"impulsiv",
+
+    "regress":
+        r"regress|lost (a )?skill|stopped (talking|walking|speaking)",
+
+    "feeding":
+        r"feeding|chew|swallow|picky",
+
+    "sound":
+        r"auditory|noise|loud sound",
+
+    "sleep":
+        r"sleep",
+
+    "fits":
+        r"convuls|seizure|\bfits?\b|epilep"
 }
 
 
@@ -2100,63 +2069,135 @@ def match_problem_keywords(text):
     }
 
 
-# How much each problem supports each screening impression.
-# An impression is added only when the total reaches
-# PROBLEM_SCORE_NEEDED. Therapists can change these numbers.
-# (Names match the model's target names.)
 PROBLEM_SCORE_NEEDED = 2
+
 
 PROBLEM_SUPPORT = {
 
-    "speech": {"Speech Delay": 2},
-    "milestones": {"Developmental Delay": 2},
-    "hightone": {"CP": 2},
+    "speech": {
+        "Speech Delay": 2
+    },
 
-    "drool": {"CP": 1},
-    "weak": {"CP": 1, "Developmental Delay": 1},
-    "balance": {"CP": 1, "Developmental Delay": 1},
-    "tiptoe": {"CP": 1, "ASD": 1},
+    "milestones": {
+        "Developmental Delay": 2
+    },
 
-    "lowtone": {"Developmental Delay": 1},
-    "finemotor": {"Developmental Delay": 1},
-    "adl": {"Developmental Delay": 1},
-    "feeding": {"Developmental Delay": 1},
+    "hightone": {
+        "CP": 2
+    },
 
-    "hyper": {"ADHD": 1},
-    "attention": {"ADHD": 1},
-    "impuls": {"ADHD": 1},
+    "drool": {
+        "CP": 1
+    },
 
-    "eye": {"ASD": 1},
-    "social": {"ASD": 1},
-    "repetitive": {"ASD": 1},
-    "tantrum": {"ASD": 1},
-    "tactile": {"ASD": 1},
-    "sound": {"ASD": 1},
-    "sleep": {"ASD": 1}
+    "weak": {
+        "CP": 1,
+        "Developmental Delay": 1
+    },
+
+    "balance": {
+        "CP": 1,
+        "Developmental Delay": 1
+    },
+
+    "tiptoe": {
+        "CP": 1,
+        "ASD": 1
+    },
+
+    "lowtone": {
+        "Developmental Delay": 1
+    },
+
+    "finemotor": {
+        "Developmental Delay": 1
+    },
+
+    "adl": {
+        "Developmental Delay": 1
+    },
+
+    "feeding": {
+        "Developmental Delay": 1
+    },
+
+    "hyper": {
+        "ADHD": 1
+    },
+
+    "attention": {
+        "ADHD": 1
+    },
+
+    "impuls": {
+        "ADHD": 1
+    },
+
+    "eye": {
+        "ASD": 1
+    },
+
+    "social": {
+        "ASD": 1
+    },
+
+    "repetitive": {
+        "ASD": 1
+    },
+
+    "tantrum": {
+        "ASD": 1
+    },
+
+    "tactile": {
+        "ASD": 1
+    },
+
+    "sound": {
+        "ASD": 1
+    },
+
+    "sleep": {
+        "ASD": 1
+    }
 }
+
 
 PROBLEM_IMPRESSION_NAMES = {
 
-    "CP": "Cerebral Palsy",
-    "ASD": "Autism Spectrum Disorder",
-    "ADHD": "Attention-Deficit/Hyperactivity Disorder",
-    "Speech Delay": "Delayed Speech",
-    "Developmental Delay": "Developmental Delay",
-    "Hemiplegia": "Hemiplegia",
-    "Down Syndrome": "Down Syndrome"
+    "CP":
+        "Cerebral Palsy",
+
+    "ASD":
+        "Autism Spectrum Disorder",
+
+    "ADHD":
+        "Attention-Deficit/Hyperactivity Disorder",
+
+    "Speech Delay":
+        "Delayed Speech",
+
+    "Developmental Delay":
+        "Developmental Delay",
+
+    "Hemiplegia":
+        "Hemiplegia",
+
+    "Down Syndrome":
+        "Down Syndrome"
 }
 
 
 selected_problem_keys = []
+
 other_problem_text = ""
 
-# The problems list only appears if the parent or caregiver
-# says they have noticed a problem.
 
 has_problems = st.checkbox(
     "I have noticed a problem with my child (optional)",
     key="has_problems"
 )
+
 
 if has_problems:
 
@@ -2176,6 +2217,7 @@ if has_problems:
             name,
             key=f"problem_{key}"
         ):
+
             selected_problem_keys.append(
                 key
             )
@@ -2192,26 +2234,15 @@ if has_problems:
 
 
 # =========================================================
-# CONTACT FOR FOLLOW-UP (ADDED)
+# CONTACT FOR FOLLOW-UP
 # =========================================================
-#
-# This part is optional. The parent or caregiver must tick
-# the box to agree. Only then are the name and phone number
-# asked for, and only then is the information sent to the
-# centre by email after screening.
-#
-# The email settings are NOT written in this file. They are
-# kept in Streamlit "Secrets" (see the setup steps).
-# =========================================================
-
-import smtplib
-from email.message import EmailMessage
-from datetime import datetime, timedelta, timezone
 
 CENTRE_PHONE = "+254 727 077844"
 
 
-last_email_error = {"text": ""}
+last_email_error = {
+    "text": ""
+}
 
 
 def send_follow_up_email(subject, text):
@@ -2230,11 +2261,12 @@ def send_follow_up_email(subject, text):
             email_settings["receiver"]
         ).strip()
 
-        # Google shows app passwords in groups with spaces.
-        # The spaces are removed here.
         app_password = str(
             email_settings["app_password"]
-        ).replace(" ", "").strip()
+        ).replace(
+            " ",
+            ""
+        ).strip()
 
         message = EmailMessage()
 
@@ -2247,8 +2279,16 @@ def send_follow_up_email(subject, text):
         )
 
         with smtplib.SMTP_SSL(
-            email_settings.get("smtp_host", "smtp.gmail.com"),
-            int(email_settings.get("smtp_port", 465)),
+            email_settings.get(
+                "smtp_host",
+                "smtp.gmail.com"
+            ),
+            int(
+                email_settings.get(
+                    "smtp_port",
+                    465
+                )
+            ),
             timeout=20
         ) as server:
 
@@ -2266,9 +2306,9 @@ def send_follow_up_email(subject, text):
     except KeyError as missing_setting:
 
         last_email_error["text"] = (
-            f"A setting is missing in Secrets: {missing_setting}. "
-            "Secrets must have [email] with sender, "
-            "app_password and receiver."
+            f"A setting is missing in Secrets: "
+            f"{missing_setting}. Secrets must have "
+            "[email] with sender, app_password and receiver."
         )
 
     except smtplib.SMTPAuthenticationError:
@@ -2298,6 +2338,7 @@ st.write(
     "support, please agree below."
 )
 
+
 share_contact = st.checkbox(
     "I agree that Furaha Therapy and Care Centre may contact me, "
     "and I agree to share my name, phone number, my child's "
@@ -2306,9 +2347,11 @@ share_contact = st.checkbox(
     key="share_contact"
 )
 
+
 parent_name = ""
 parent_phone = ""
 contact_ready = False
+
 
 if share_contact:
 
@@ -2337,7 +2380,11 @@ if share_contact:
         )
     )
 
-    if parent_name.strip() and phone_is_valid and child_name.strip():
+    if (
+        parent_name.strip()
+        and phone_is_valid
+        and child_name.strip()
+    ):
 
         contact_ready = True
 
@@ -2362,7 +2409,16 @@ if share_contact:
 
 st.divider()
 
-screen_button = st.button(
+
+# IMPORTANT:
+# st.empty() gives us a placeholder that can be visually
+# replaced by the green "Screening child... Please wait"
+# message while the model is running.
+
+screen_button_placeholder = st.empty()
+
+
+screen_button = screen_button_placeholder.button(
     "Screen Child",
     type="primary",
     use_container_width=True
@@ -2374,7 +2430,6 @@ screen_button = st.button(
 # =========================================================
 
 if screen_button:
-
 
     # -----------------------------------------------------
     # CHECK ALL FIELDS
@@ -2427,6 +2482,19 @@ if screen_button:
         )
 
     else:
+
+        # -------------------------------------------------
+        # CHANGE THE GREEN BUTTON TO LOADING STATE
+        # -------------------------------------------------
+
+        screen_button_placeholder.markdown(
+            """
+            <div class="screening-loading-button">
+                🔄 Screening child... Please wait
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
         # =================================================
@@ -2763,9 +2831,7 @@ if screen_button:
 
 
         # =================================================
-        # QUESTIONS NOT SHOWN FOR THIS AGE (ADDED)
-        # A skill that is not yet expected is a missing value,
-        # not "Not achieved".
+        # QUESTIONS NOT SHOWN FOR THIS AGE
         # =================================================
 
         for hidden_label in hidden_questions:
@@ -2786,11 +2852,14 @@ if screen_button:
 
         try:
 
-            with st.spinner("🔄 Screening child... Please wait"):
+            # IMPORTANT:
+            # There is NO st.spinner() here.
+            # The loading message is already displayed
+            # inside the green button above.
 
-                screening_result = screen_child(
-                    child_data
-                )
+            screening_result = screen_child(
+                child_data
+            )
 
         except Exception as e:
 
@@ -2807,12 +2876,7 @@ if screen_button:
 
 
         # =================================================
-        # ALL-TYPICAL ANSWERS RULE (ADDED)
-        # The saved model was trained only on children who
-        # already have a condition, so it can wrongly flag a
-        # child whose answers are all typical. If every answer
-        # is the typical one, show the "continue monitoring"
-        # result instead. Nothing above this line is changed.
+        # ALL-TYPICAL ANSWERS RULE
         # =================================================
 
         typical_answers = [
@@ -2844,12 +2908,13 @@ if screen_button:
             ("Proprioception", proprioception, "Good")
         ]
 
-        # Questions not shown for the child's age are ignored
+
         all_typical = all(
             answer == typical
             for label, answer, typical in typical_answers
             if label not in hidden_questions
         )
+
 
         if all_typical:
 
@@ -2879,10 +2944,7 @@ if screen_button:
 
 
         # =================================================
-        # VERY YOUNG CHILDREN (ADDED)
-        # Below MODEL_MIN_AGE_MONTHS the model result is not
-        # used, because the model has not learned typical
-        # development of babies. Guidance is given instead.
+        # VERY YOUNG CHILDREN
         # =================================================
 
         if age_total_months < MODEL_MIN_AGE_MONTHS:
@@ -2922,13 +2984,13 @@ if screen_button:
 
 
         # =================================================
-        # ADD PROBLEMS IDENTIFIED TO THE SCREENING (ADDED)
-        # The model result above is kept. The problems the
-        # parent selected give extra information, and can
-        # add possible screening impressions.
+        # ADD PROBLEMS IDENTIFIED TO SCREENING
         # =================================================
 
-        all_problem_keys = set(selected_problem_keys)
+        all_problem_keys = set(
+            selected_problem_keys
+        )
+
 
         if other_problem_text.strip():
 
@@ -2936,11 +2998,14 @@ if screen_button:
                 other_problem_text
             )
 
+
         problem_impressions = []
+
 
         if all_problem_keys:
 
             problem_scores = {}
+
 
             for problem_key in all_problem_keys:
 
@@ -2950,9 +3015,13 @@ if screen_button:
                 ).items():
 
                     problem_scores[impression] = (
-                        problem_scores.get(impression, 0)
+                        problem_scores.get(
+                            impression,
+                            0
+                        )
                         + weight
                     )
+
 
             for impression, score in problem_scores.items():
 
@@ -2965,20 +3034,28 @@ if screen_button:
                         impression
                     )
 
+
             if problem_impressions:
 
                 screening_result["identified"] = (
-                    list(screening_result["identified"])
+                    list(
+                        screening_result["identified"]
+                    )
                     + problem_impressions
                 )
+
 
                 screening_result["result"] = (
                     "Screening indicators identified"
                 )
 
-                screening_result["interventions"] = get_interventions(
-                    screening_result["identified"]
+
+                screening_result["interventions"] = (
+                    get_interventions(
+                        screening_result["identified"]
+                    )
                 )
+
 
                 screening_result["guidance"] = (
                     "The screening result suggests that "
@@ -2986,9 +3063,13 @@ if screen_button:
                     "be helpful."
                 )
 
-                screening_result["parent_comment"] = get_parent_comment(
-                    screening_result["identified"]
+
+                screening_result["parent_comment"] = (
+                    get_parent_comment(
+                        screening_result["identified"]
+                    )
                 )
+
 
             elif not screening_result["identified"]:
 
@@ -2997,6 +3078,7 @@ if screen_button:
                     "Further assessment by a qualified health "
                     "professional or therapist may be helpful."
                 )
+
 
                 screening_result["parent_comment"] = (
                     "You have noted one or more problems with "
@@ -3008,20 +3090,25 @@ if screen_button:
 
 
         # =================================================
-        # SEND THE INFORMATION FOR FOLLOW-UP (ADDED)
-        # Only if the parent or caregiver agreed and gave a
-        # valid name and phone number.
+        # SEND INFORMATION FOR FOLLOW-UP
         # =================================================
 
         contact_share_status = "not requested"
 
+
         if share_contact and contact_ready:
 
             nairobi_time = datetime.now(
-                timezone(timedelta(hours=3))
-            ).strftime("%d %b %Y, %H:%M")
+                timezone(
+                    timedelta(hours=3)
+                )
+            ).strftime(
+                "%d %b %Y, %H:%M"
+            )
+
 
             answer_lines = []
+
 
             for label, answer, typical in typical_answers:
 
@@ -3037,10 +3124,14 @@ if screen_button:
                         f"  - {label}: {answer}"
                     )
 
+
             problem_names_for_email = [
+
                 PROBLEM_NAMES[key]
+
                 for key in selected_problem_keys
             ]
+
 
             if other_problem_text.strip():
 
@@ -3048,10 +3139,19 @@ if screen_button:
                     f"Other: {other_problem_text.strip()}"
                 )
 
+
             impression_names_for_email = [
-                PROBLEM_IMPRESSION_NAMES.get(name, name)
-                for name in screening_result["identified"]
+
+                PROBLEM_IMPRESSION_NAMES.get(
+                    name,
+                    name
+                )
+
+                for name in screening_result[
+                    "identified"
+                ]
             ]
+
 
             clean_parent_name = (
                 parent_name.strip()
@@ -3059,63 +3159,101 @@ if screen_button:
                 .replace("\n", " ")
             )
 
+
             clean_child_name = (
                 child_name.strip()
                 .replace("\r", " ")
                 .replace("\n", " ")
             )
 
+
             email_text = "\n".join([
 
                 "NEW CHILD SCREENING - PLEASE FOLLOW UP",
+
                 f"Date and time (Kenya): {nairobi_time}",
+
                 "",
+
                 "PARENT / CAREGIVER",
+
                 f"  Name: {clean_parent_name}",
+
                 f"  Phone / WhatsApp: {parent_phone.strip()}",
+
                 "",
+
                 "CHILD",
+
                 f"  Name: {clean_child_name}",
+
                 f"  Date of birth: {dob}",
+
                 f"  Age: {format_age(age_years, age_months)}",
+
                 f"  County: {county}",
+
                 f"  Sub-county: {subcounty.strip()}",
+
                 "",
+
                 "ANSWERS",
+
                 *answer_lines,
+
                 "",
+
                 "PROBLEMS IDENTIFIED BY THE PARENT",
+
                 "  " + (
-                    "; ".join(problem_names_for_email)
+                    "; ".join(
+                        problem_names_for_email
+                    )
                     if problem_names_for_email
                     else "None"
                 ),
+
                 "",
+
                 "SCREENING RESULT",
+
                 f"  {screening_result['result']}",
+
                 "  Impressions: " + (
-                    ", ".join(impression_names_for_email)
+                    ", ".join(
+                        impression_names_for_email
+                    )
                     if impression_names_for_email
                     else "None"
                 ),
+
                 f"  Guidance: {screening_result['guidance']}",
+
                 "",
+
                 "This is a screening result only and not a diagnosis."
             ])
+
 
             with st.spinner(
                 "Sharing your details with the centre..."
             ):
 
                 email_sent = send_follow_up_email(
+
                     f"Furaha screening follow-up: "
                     f"{clean_parent_name} ({county})",
+
                     email_text
                 )
 
+
             contact_share_status = (
-                "sent" if email_sent else "failed"
+                "sent"
+                if email_sent
+                else "failed"
             )
+
 
         elif share_contact:
 
@@ -3148,9 +3286,11 @@ if screen_button:
             "Child Residence"
         )
 
+
         st.write(
             f"**County:** {county}"
         )
+
 
         st.write(
             f"**Sub-county:** {subcounty}"
@@ -3161,8 +3301,9 @@ if screen_button:
         # DX / OT IMPRESSION
         # =================================================
 
-        # Heading: singular for one impression, plural for more
-        if len(screening_result["identified"]) > 1:
+        if len(
+            screening_result["identified"]
+        ) > 1:
 
             st.subheader(
                 "Screening Impressions"
@@ -3181,6 +3322,7 @@ if screen_button:
                 screening_result["result"]
             )
 
+
             for condition in screening_result[
                 "identified"
             ]:
@@ -3191,15 +3333,18 @@ if screen_button:
                     )
                 )
 
+
                 st.write(
                     f"• {parent_friendly_name}"
                 )
+
 
         else:
 
             st.success(
                 screening_result["result"]
             )
+
 
             st.write(
                 "No DX/OT screening impression was "
@@ -3208,12 +3353,13 @@ if screen_button:
 
 
         # =================================================
-        # PROBLEMS IDENTIFIED (ADDED)
-        # Shown only when the parent or caregiver selected or
-        # typed a problem.
+        # PROBLEMS IDENTIFIED
         # =================================================
 
-        if selected_problem_keys or other_problem_text.strip():
+        if (
+            selected_problem_keys
+            or other_problem_text.strip()
+        ):
 
             st.divider()
 
@@ -3221,11 +3367,13 @@ if screen_button:
                 "Problems Identified by Parent / Caregiver"
             )
 
+
             for problem_key in selected_problem_keys:
 
                 st.write(
                     f"• {PROBLEM_NAMES[problem_key]}"
                 )
+
 
             if other_problem_text.strip():
 
@@ -3233,12 +3381,19 @@ if screen_button:
                     f"• Other: {other_problem_text.strip()}"
                 )
 
+
             if problem_impressions:
 
                 added_names = ", ".join(
-                    PROBLEM_IMPRESSION_NAMES.get(name, name)
+
+                    PROBLEM_IMPRESSION_NAMES.get(
+                        name,
+                        name
+                    )
+
                     for name in problem_impressions
                 )
+
 
                 st.info(
                     "The problems you selected, together with "
@@ -3246,6 +3401,7 @@ if screen_button:
                     f"{added_names}. This is a screening idea "
                     "only and is not a diagnosis."
                 )
+
 
             if (
                 "fits" in all_problem_keys
@@ -3257,6 +3413,7 @@ if screen_button:
                     "by a doctor or health worker soon. "
                     "Please do not wait."
                 )
+
 
             st.write(
                 "This tool does not give medication or a "
@@ -3277,10 +3434,12 @@ if screen_button:
                 "Suggested Intervention Approaches"
             )
 
+
             st.write(
                 "The following approaches may be considered "
                 "for professional assessment and support:"
             )
+
 
             for intervention in screening_result[
                 "interventions"
@@ -3300,6 +3459,7 @@ if screen_button:
         st.subheader(
             "Recommended Action"
         )
+
 
         st.write(
             screening_result["guidance"]
@@ -3338,6 +3498,7 @@ if screen_button:
             "Suggested Therapy / Rehabilitation Centres"
         )
 
+
         st.write(
             f"Based on the child's residence in "
             f"{county} County, {subcounty} Sub-county."
@@ -3357,27 +3518,33 @@ if screen_button:
                     f"### 🏥 {centre['name']}"
                 )
 
+
                 st.write(
                     f"**Town/Area:** "
                     f"{centre['town']}"
                 )
+
 
                 st.write(
                     f"**Sub-county:** "
                     f"{centre['subcounty']}"
                 )
 
+
                 st.write(
                     f"**Services:** "
                     f"{centre['services']}"
                 )
+
 
                 st.write(
                     f"**Contact:** "
                     f"{centre['contact']}"
                 )
 
+
                 st.divider()
+
 
         else:
 
@@ -3386,6 +3553,7 @@ if screen_button:
                 f"added to the system for {county} County "
                 f"yet."
             )
+
 
             st.write(
                 "Please consider contacting the nearest "
@@ -3414,12 +3582,14 @@ if screen_button:
 
         st.divider()
 
+
         st.info(
             screening_result["disclaimer"]
         )
 
+
         # =================================================
-        # FOLLOW-UP MESSAGE FOR THE PARENT (ADDED)
+        # FOLLOW-UP MESSAGE
         # =================================================
 
         if contact_share_status == "sent":
@@ -3429,6 +3599,7 @@ if screen_button:
                 "the centre, and someone will contact you."
             )
 
+
         elif contact_share_status == "failed":
 
             st.warning(
@@ -3437,24 +3608,31 @@ if screen_button:
                 f"{CENTRE_PHONE}."
             )
 
-            # Shown only when debug = true is set in Secrets
-            # (for the person managing the app, not for parents)
+
             try:
 
                 show_email_debug = bool(
-                    st.secrets["email"].get("debug", False)
+                    st.secrets["email"].get(
+                        "debug",
+                        False
+                    )
                 )
 
             except Exception:
 
                 show_email_debug = False
 
+
             if show_email_debug:
 
                 st.error(
                     "Admin message (only shown when debug = true): "
-                    + (last_email_error["text"] or "Unknown problem")
+                    + (
+                        last_email_error["text"]
+                        or "Unknown problem"
+                    )
                 )
+
 
         elif contact_share_status == "incomplete":
 
@@ -3466,7 +3644,7 @@ if screen_button:
 
 
 # =========================================================
-# FURAHA FOOTER (DESIGN ONLY)
+# FURAHA FOOTER
 # =========================================================
 
 st.markdown("""
