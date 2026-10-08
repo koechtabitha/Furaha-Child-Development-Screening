@@ -2786,11 +2786,13 @@ if screen_button:
 
         try:
 
-            screening_result = screen_child(
-                child_data
-            )
+    with st.spinner("🔄 Screening child... Please wait"):
 
-        except Exception as e:
+        screening_result = screen_child(
+            child_data
+        )
+
+except Exception as e:
 
             st.error(
                 "An error occurred while running "
