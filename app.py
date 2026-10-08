@@ -3424,9 +3424,15 @@ if screen_button:
         # DISPLAY SCREENING RESULT
         # =================================================
 
-        # Remove the "Screening child... Please wait" message
-        # before displaying the final screening results.
-        screen_button_placeholder.empty()
+        # Restore the green screening button after screening.
+        # The loading message disappears, while the green
+        # button remains visible in the same position.
+        screen_button_placeholder.button(
+            "Screen Child",
+            type="primary",
+            use_container_width=True,
+            disabled=True
+        )
 
         st.divider()
 
