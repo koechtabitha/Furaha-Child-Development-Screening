@@ -197,13 +197,25 @@ Model deployment
 
 Application Architecture
 
-The project consists of the following main files:
+The Streamlit interface is organized into small modules so that the entry point stays easy to navigate:
 
 ```text
 Furaha-Child-Development-Screening/
 │
 ├── app.py
 ├── furaha_screening_model.joblib
+├── screening/
+│   ├── app.py
+│   ├── forms.py
+│   ├── workflow.py
+│   ├── model.py
+│   ├── results_view.py
+│   ├── theme.py
+│   ├── contact.py
+│   ├── clinical.py
+│   ├── concerns.py
+│   ├── questions_data.py
+│   └── referrals.py
 ├── requirements.txt
 ├── runtime.txt
 └── README.md
@@ -213,38 +225,31 @@ File Description
 
 | File                            | Purpose                                                     |
 | ------------------------------- | ----------------------------------------------------------- |
-| `app.py`                        | Main Streamlit application                                  |
-| `furaha_screening_model.joblib` | Trained machine-learning model and preprocessing components |
-| `requirements.txt`              | Python packages required to run the application             |
-| `runtime.txt`                   | Runtime configuration                                       |
-| `README.md`                     | Project documentation                                       |
+| `app.py` | Streamlit entry point and page configuration |
+| `screening/app.py` | Composes the five-step interface and coordinates submission |
+| `screening/forms.py` | Form fields, age-based questions, and answer definitions |
+| `screening/workflow.py` | Validation, feature mapping, and screening-result adjustments |
+| `screening/model.py` | Loads the model and runs predictions |
+| `screening/results_view.py` | Displays impressions, guidance, and referral information |
+| `screening/theme.py` | Responsive layout and Furaha visual styling |
+| `screening/contact.py` | Optional follow-up consent and email handling |
+| `screening/clinical.py` | Parent-friendly impression names and support information |
+| `screening/concerns.py` | Caregiver concern list and concern scoring rules |
+| `screening/questions_data.py` | Age thresholds, model question keys, and counties |
+| `screening/referrals.py` | Therapy-centre referral information |
+| `furaha_screening_model.joblib` | Trained model and preprocessing components |
+| `requirements.txt` | Python packages required to run the application |
+| `runtime.txt` | Runtime configuration |
+| `README.md` | Project documentation |
 
 ---
 
 User Workflow
 
-The application follows a structured screening workflow:
+The application follows a structured five-step screening workflow:
 
 ```text
-Child Information
-       ↓
-Age and Residence
-       ↓
-Developmental and Functional Questions
-       ↓
-ADLs
-       ↓
-Gross Motor
-       ↓
-Fine Motor
-       ↓
-Sensory Information
-       ↓
-Machine Learning Model
-       ↓
-Screening Impressions
-       ↓
-General Guidance and Referral Information
+Child details and residence → Daily skills → Movement → Senses → Review and screening summary
 ```
 
 ---

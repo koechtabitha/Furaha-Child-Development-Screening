@@ -1,0 +1,85 @@
+[1mdiff --git a/README.md b/README.md[m
+[1mindex a72ead3..035f8c5 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -197,13 +197,25 @@[m [mModel deployment[m
+ [m
+ Application Architecture[m
+ [m
+[31m-The project consists of the following main files:[m
+[32m+[m[32mThe Streamlit interface is organized into small modules so that the entry point stays easy to navigate:[m
+ [m
+ ```text[m
+ Furaha-Child-Development-Screening/[m
+ │[m
+ ├── app.py[m
+ ├── furaha_screening_model.joblib[m
+[32m+[m[32m├── screening/[m
+[32m+[m[32m│   ├── app.py[m
+[32m+[m[32m│   ├── forms.py[m
+[32m+[m[32m│   ├── workflow.py[m
+[32m+[m[32m│   ├── model.py[m
+[32m+[m[32m│   ├── results_view.py[m
+[32m+[m[32m│   ├── theme.py[m
+[32m+[m[32m│   ├── contact.py[m
+[32m+[m[32m│   ├── clinical.py[m
+[32m+[m[32m│   ├── concerns.py[m
+[32m+[m[32m│   ├── questions_data.py[m
+[32m+[m[32m│   └── referrals.py[m
+ ├── requirements.txt[m
+ ├── runtime.txt[m
+ └── README.md[m
+[36m@@ -213,38 +225,31 @@[m [mFile Description[m
+ [m
+ | File                            | Purpose                                                     |[m
+ | ------------------------------- | ----------------------------------------------------------- |[m
+[31m-| `app.py`                        | Main Streamlit application                                  |[m
+[31m-| `furaha_screening_model.joblib` | Trained machine-learning model and preprocessing components |[m
+[31m-| `requirements.txt`              | Python packages required to run the application             |[m
+[31m-| `runtime.txt`                   | Runtime configuration                                       |[m
+[31m-| `README.md`                     | Project documentation                                       |[m
+[32m+[m[32m| `app.py` | Streamlit entry point and page configuration |[m
+[32m+[m[32m| `screening/app.py` | Composes the five-step interface and coordinates submission |[m
+[32m+[m[32m| `screening/forms.py` | Form fields, age-based questions, and answer definitions |[m
+[32m+[m[32m| `screening/workflow.py` | Validation, feature mapping, and screening-result adjustments |[m
+[32m+[m[32m| `screening/model.py` | Loads the model and runs predictions |[m
+[32m+[m[32m| `screening/results_view.py` | Displays impressions, guidance, and referral information |[m
+[32m+[m[32m| `screening/theme.py` | Responsive layout and Furaha visual styling |[m
+[32m+[m[32m| `screening/contact.py` | Optional follow-up consent and email handling |[m
+[32m+[m[32m| `screening/clinical.py` | Parent-friendly impression names and support information |[m
+[32m+[m[32m| `screening/concerns.py` | Caregiver concern list and concern scoring rules |[m
+[32m+[m[32m| `screening/questions_data.py` | Age thresholds, model question keys, and counties |[m
+[32m+[m[32m| `screening/referrals.py` | Therapy-centre referral information |[m
+[32m+[m[32m| `furaha_screening_model.joblib` | Trained model and preprocessing components |[m
+[32m+[m[32m| `requirements.txt` | Python packages required to run the application |[m
+[32m+[m[32m| `runtime.txt` | Runtime configuration |[m
+[32m+[m[32m| `README.md` | Project documentation |[m
+ [m
+ ---[m
+ [m
+ User Workflow[m
+ [m
+[31m-The application follows a structured screening workflow:[m
+[32m+[m[32mThe application follows a structured five-step screening workflow:[m
+ [m
+ ```text[m
+[31m-Child Information[m
+[31m-       ↓[m
+[31m-Age and Residence[m
+[31m-       ↓[m
+[31m-Developmental and Functional Questions[m
+[31m-       ↓[m
+[31m-ADLs[m
+[31m-       ↓[m
+[31m-Gross Motor[m
+[31m-       ↓[m
+[31m-Fine Motor[m
+[31m-       ↓[m
+[31m-Sensory Information[m
+[31m-       ↓[m
+[31m-Machine Learning Model[m
+[31m-       ↓[m
+[31m-Screening Impressions[m
+[31m-       ↓[m
+[31m-General Guidance and Referral Information[m
+[32m+[m[32mChild detai
